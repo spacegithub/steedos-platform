@@ -1,0 +1,21 @@
+datasources:
+  default:
+    connection: 
+      url: ${MONGO_URL}
+public:
+  cfs:
+    store: "local"
+    local: 
+      folder: "./storage"
+  templateSpaceId: template
+plugins:
+  - "@steedos/app-crm"
+  - "@steedos/steedos-plugin-workflow"
+enable_holidays: true
+tenant:
+  _id: ${ENV_TENANT_ID}
+  saas: false
+  enable_mobile: false
+  enable_register: false
+  enable_forget_password: false
+  enable_password_login: true

@@ -43,6 +43,7 @@ export class SteedosMeteorMongoDriver implements SteedosDriver {
     }
 
     formatFiltersToMongoQuery(filters: any): JsonMap {
+        let emptyFilters = {};
         let odataQuery: string = "";
         if (_.isString(filters)) {
             odataQuery = filters;
@@ -50,7 +51,10 @@ export class SteedosMeteorMongoDriver implements SteedosDriver {
         else {
             odataQuery = formatFiltersToODataQuery(filters)
         }
-        let query: JsonMap = createFilter(odataQuery)
+        if (!odataQuery) {
+            return emptyFilters;
+        }
+        let query: JsonMap = createFilter(odataQuery);
         return query;
     }
 
@@ -118,6 +122,64 @@ export class SteedosMeteorMongoDriver implements SteedosDriver {
         return result;
     }
 
+    getAggregateOptions(options: SteedosQueryOptions): any[] {
+        if (_.isUndefined(options)) {
+            return [];
+        }
+        let result = [];
+        let projection: JsonMap = this.getMongoFieldsOptions(options.fields);
+        let sort: JsonMap = this.getMongoSortOptions(options.sort);
+        if (!_.isEmpty(projection)) {
+            result.push({ $project: projection });
+        }
+        if (!_.isEmpty(sort)) {
+            result.push({ $sort: sort });
+        }
+        if (options.skip) {
+            result.push({ $skip: options.skip });
+        }
+        if (options.top) {
+            result.push({ $limit: options.top });
+        }
+        return result;
+    }
+
+    getAggregateSortOption(options: SteedosQueryOptions): any {
+        if (_.isUndefined(options)) {
+            return;
+        }
+        let sort: JsonMap = this.getMongoSortOptions(options.sort);
+        if (!_.isEmpty(sort)) {
+            return { $sort: sort };
+        }
+        return;
+    }
+
+    getAggregateProjectionOption(options: SteedosQueryOptions): any {
+        if (_.isUndefined(options)) {
+            return [];
+        }
+        let projection: JsonMap = this.getMongoFieldsOptions(options.fields);
+        if (!_.isEmpty(projection)) {
+            return { $project: projection };
+        }
+        return;
+    }
+
+    getAggregateSkipLimitOptions(options: SteedosQueryOptions): any {
+        if (_.isUndefined(options)) {
+            return [];
+        }
+        let result = [];
+        if (options.skip) {
+            result.push({ $skip: options.skip });
+        }
+        if (options.top) {
+            result.push({ $limit: options.top });
+        }
+        return result;
+    }
+
     collection(name: string) {
         return Creator.Collections[name];
     };
@@ -141,6 +203,101 @@ export class SteedosMeteorMongoDriver implements SteedosDriver {
                         return collection.find(mongoFilters, mongoOptions).fetch();
                     })
                     resolve(result);
+                } catch (error) {
+                    reject(error)
+                }
+            }).run()
+        });
+    }
+
+    async aggregate(tableName: string, query: SteedosQueryOptions, externalPipeline: any[], userId?: SteedosIDType) {
+        let collection = this.collection(tableName);
+        let rawCollection = collection.rawCollection();
+        let pipeline = [];
+
+        let mongoFilters = this.getMongoFilters(query.filters);
+        let sortOption = this.getAggregateSortOption(query);
+        if (sortOption) {
+            pipeline.push(sortOption);
+        }
+        pipeline.push({ $match: mongoFilters });
+        let skipLimitOptions = this.getAggregateSkipLimitOptions(query);
+        if (!_.isEmpty(skipLimitOptions)) {
+            pipeline = pipeline.concat(skipLimitOptions);
+        }
+        let projectionOption = this.getAggregateProjectionOption(query);
+        if (projectionOption) {
+            pipeline.push(projectionOption);
+        }
+        if (!_.isEmpty(externalPipeline)) {
+            pipeline = pipeline.concat(externalPipeline);
+        }
+        return await new Promise((resolve, reject) => {
+            Fiber(function () {
+                try {
+                    rawCollection.aggregate(pipeline).toArray(function (err, data) {
+                        if (err) {
+                            reject(err);
+                        }
+                        resolve(data);
+                    });
+                } catch (error) {
+                    reject(error)
+                }
+            }).run()
+        });
+    }
+
+    async directAggregate(tableName: string, query: SteedosQueryOptions, externalPipeline: any[], userId?: SteedosIDType) {
+        let collection = this.collection(tableName);
+        let rawCollection = collection.rawCollection();
+        let pipeline = [];
+
+        let mongoFilters = this.getMongoFilters(query.filters);
+        let aggregateOptions = this.getAggregateOptions(query);
+
+        pipeline.push({ $match: mongoFilters });
+
+        pipeline = pipeline.concat(aggregateOptions).concat(externalPipeline);
+
+        return await new Promise((resolve, reject) => {
+            Fiber(function () {
+                try {
+                    rawCollection.aggregate(pipeline).toArray(function (err, data) {
+                        if (err) {
+                            reject(err);
+                        }
+                        resolve(data);
+                    });
+                } catch (error) {
+                    reject(error)
+                }
+            }).run()
+        });
+    }
+
+    async directAggregatePrefixalPipeline(tableName: string, query: SteedosQueryOptions, prefixalPipeline: any[], userId?: SteedosIDType) {
+        let collection = this.collection(tableName);
+        let rawCollection = collection.rawCollection();
+        let pipeline = [];
+
+        let mongoFilters = this.getMongoFilters(query.filters);
+        let aggregateOptions = this.getAggregateOptions(query);
+
+        pipeline.push({ $match: mongoFilters });
+
+        // pipeline中的次序不能错，一定要先$lookup，再$match，再$project、$sort、$skip、$limit等，否则查询结果可能为空，比如公式字段中就用到了$lookup
+        pipeline = prefixalPipeline.concat(pipeline).concat(aggregateOptions);
+
+        return await new Promise((resolve, reject) => {
+            Fiber(function () {
+                try {
+                    rawCollection.aggregate(pipeline).toArray(function (err, data) {
+                        if (err) {
+                            reject(err);
+                        }
+                        resolve(data);
+                    });
                 } catch (error) {
                     reject(error)
                 }

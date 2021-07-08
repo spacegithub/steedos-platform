@@ -1,5 +1,16 @@
 
-objectWebhooksPreSend = function (userId, doc, object_name, action) {
+// const objectql = require("@steedos/objectql");
+// const wrapAsync = objectql.wrapAsync;
+
+const objectWebhooksPreSend = function (userId, doc, object_name, action) {
+    var spaceId = doc.space;
+    if (spaceId == '{spaceId}') {
+        return;
+    }
+    if (!spaceId) {
+        console.error('not found spaceId');
+        return;
+    }
     var actionUserInfo, obj, owCollection, redirectUrl;
     if (!ObjectWebhooksQueue) {
         console.error('not found ObjectWebhooksQueue');
@@ -10,17 +21,19 @@ objectWebhooksPreSend = function (userId, doc, object_name, action) {
         console.error('not found collection object_webhooks');
         return;
     }
+
     obj = Creator.getObject(object_name);
     actionUserInfo = Creator.getCollection('users').findOne(userId, {
         fields: {
             name: 1
         }
     });
-    redirectUrl = Steedos.absoluteUrl(Creator.getObjectUrl(object_name, doc._id, object_name));
+    redirectUrl = Creator.getObjectAbsoluteUrl(object_name, doc._id, "-");
     owCollection.find({
         object_name: object_name,
         active: true,
-        events: action
+        events: action,
+        space: spaceId
     }).forEach(function (oh) {
         var data;
         data = {};
@@ -60,6 +73,18 @@ objectWebhooksPreSend = function (userId, doc, object_name, action) {
         });
     });
 };
+
+// const fieldFormulaBeforeUpdate = function(userId, doc, fieldNames, modifier, options){
+//     wrapAsync(objectql.fieldFormulaTriggers.beforeUpdate, Object.assign({userId: userId, spaceId: doc.space, id: doc._id, doc: modifier.$set, previousDoc: doc, object_name: this.object_name}))
+// }
+
+// const fieldFormulaBeforeInsert = function(userId, doc){
+//     wrapAsync(objectql.fieldFormulaTriggers.beforeInsert, Object.assign({userId: userId, spaceId: doc.space, doc: doc, object_name: this.object_name}))
+// }
+
+// const fieldFormulaAfterUpdate = function(userId, doc, fieldNames, modifier, options){
+//     wrapAsync(objectql.fieldFormulaTriggers.afterUpdate, Object.assign({userId: userId, spaceId: doc.space, id: doc._id, doc: doc, previousDoc: this.previous, object_name: this.object_name}))
+// }
 
 module.exports = {
     extend: 'base',
@@ -130,7 +155,7 @@ module.exports = {
         standard_approve: {
             label: "Initiate Approval",
             visible: function (object_name, record_id, record_permissions) {
-                if(!Session.get("record_id")) {
+                if (!Session.get("record_id")) {
                     /*只在详细界面显示这个action*/
                     return false;
                 }
@@ -165,7 +190,7 @@ module.exports = {
         standard_view_instance: {
             label: "View Instance",
             visible: function (object_name, record_id, record_permissions) {
-                if(!Session.get("record_id")) {
+                if (!Session.get("record_id")) {
                     /*只在详细界面显示这个action*/
                     return false;
                 }
@@ -192,7 +217,7 @@ module.exports = {
                     record_id: this.record_id,
                     space_id: Session.get("spaceId")
                 };
-                url = Meteor.absoluteUrl() + ("api/workflow/view/" + instanceId + "?") + $.param(uobj);
+                url = Steedos.absoluteUrl() + ("api/workflow/view/" + instanceId + "?") + $.param(uobj);
                 data = JSON.stringify(data);
                 $(document.body).addClass('loading');
                 return $.ajax({
@@ -209,14 +234,21 @@ module.exports = {
                             responseText.errors.forEach(function (e) {
                                 toastr.error(e.errorMessage);
                             });
+                            Template.creator_view.currentInstance.onEditSuccess();
                             return;
                         } else if (responseText.redirect_url) {
-                            Steedos.openWindow(responseText.redirect_url);
+                            if (Meteor.settings.public.webservices && Meteor.settings.public.webservices.workflow && Meteor.settings.public.webservices.workflow.url) {
+                                Steedos.openWindow(responseText.redirect_url);
+                            } else {
+                                Steedos.openWindow(Steedos.absoluteUrl(responseText.redirect_url));
+                            }
+
                         }
                     },
                     error: function (xhr, msg, ex) {
                         $(document.body).removeClass('loading');
                         toastr.error(msg);
+                        Template.creator_view.currentInstance.onEditSuccess();
                     }
                 });
             }
@@ -237,6 +269,15 @@ module.exports = {
                 } else {
                     Creator.odata.insert('follows', { object_name: Session.get("object_name") });
                 }
+            }
+        },
+        standard_submit_for_approval: {
+            visible: function (object_name, record_id) {
+                return Steedos.ProcessManager.allowSubmit(object_name, record_id);
+            },
+            on: "record_only_more",
+            todo: function(object_name, record_id){
+                Steedos.ProcessManager.submit(object_name, record_id);
             }
         }
     },
@@ -263,7 +304,7 @@ module.exports = {
                     /* company_ids/company_id默认值逻辑*/
                     if (!doc.company_id || !doc.company_ids) {
                         var su;
-                        if(userId){
+                        if (userId) {
                             su = Creator.getCollection("space_users").findOne({ space: doc.space, user: userId }, {
                                 fields: { company_id: 1 }
                             });
@@ -530,7 +571,26 @@ module.exports = {
 
                 }
             }
-        }
+        },
+        "after.delete.server.object_recent_viewed": {
+            "on": "server",
+            when: "after.remove",
+            todo: function (userId, doc, fieldNames, modifier, options) {
+                let selector = {
+                    "space": doc.space,
+                    "record.o": this.object_name,
+                    "record.ids": doc._id
+                };
+                Creator.getCollection('object_recent_viewed').direct.remove(selector);
+            }
+        },
+        // "before.update.server.processRecordLockCheck": {
+        //     on: 'server',
+        //     when: 'before.update',
+        //     todo: function(userId, doc, fieldNames, modifier, options){
+
+        //     }
+        // }
     }
 };
 function setDetailOwner(doc, object_name, userId) {

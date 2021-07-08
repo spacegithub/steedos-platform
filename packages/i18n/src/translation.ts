@@ -1,5 +1,4 @@
 import { _t, exists, addResourceBundle } from './index';
-const yaml = require('js-yaml')
 const _ = require("underscore");
 const clone = require("clone");
 
@@ -45,6 +44,9 @@ const getObjectFieldGroupKey = function(objectName, name){
 }
 
 const getObjectFieldOptionsLabelKey = function(objectName, name, value){
+    if(name){
+        name = name.replace(/\./g, '_');
+    }
     return `${objectName}${KEYSEPARATOR}field${KEYSEPARATOR}${name}${KEYSEPARATOR}options${KEYSEPARATOR}${value}`
 }
 
@@ -198,7 +200,7 @@ const convertObject = function (object: StringMap) {
 }
 
 //TODO 处理继承字段base, core 的字段
-const translationObject = function(lng: string, objectName: string, object: StringMap){
+export const translationObject = function(lng: string, objectName: string, object: StringMap){
     object.label = getObjectLabel(lng, objectName, object.label);
     _.each(object.fields, function(field, fieldName){
         field.label = getObjectFieldLabel(lng, objectName, fieldName, field.label, object.datasource);
@@ -213,7 +215,7 @@ const translationObject = function(lng: string, objectName: string, object: Stri
             _.each(field.options, function(op){
                 if(_.has(op, 'value')){
                     let _label = getObjectFieldOptionsLabel(lng, objectName, fieldName, op.value, op.label, object.datasource) 
-                    _options.push({value: op.value, label: _label})
+                    _options.push(_.extend({}, op, {label: _label}))
                 }else{
                     _options.push(op)
                 }
@@ -274,8 +276,4 @@ export const getObjectI18nTemplate = function(lng: string ,objectName: string, _
     })
 
     return template;
-}
-
-export const toYml = function(date: StringMap){
-    return yaml.dump(date, {sortKeys: true}).replace(/: ''/g, ': ');
 }

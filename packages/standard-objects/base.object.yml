@@ -1,4 +1,5 @@
 name: base
+hidden: true
 fields:
   owner:
     label: Owner
@@ -144,13 +145,13 @@ fields:
         };
         
         if(perms.modifyAllRecords){
-          /* 如果当前用户对当前业务对象的权限为 modifyAllRecords，那选择单位时可以能从所有单位中选择。*/
+          /* 如果当前用户对当前业务对象的权限为 modifyAllRecords，那选择分部时可以能从所有分部中选择。*/
         }
         else{
-          /* 如果当前用户对当前业务对象的权限为 modifyCompanyRecords，那选择单位时只能从当前用户所属单位中选择。*/
+          /* 如果当前用户对当前业务对象的权限为 modifyCompanyRecords，那选择分部时只能从当前用户所属分部中选择。*/
           var company_ids = Creator.USER_CONTEXT.user.company_ids;
           if(!company_ids.length){
-            console.warn("当前用户不属于任何单位，无权修改该字段。");
+            console.warn("当前用户不属于任何分部，无权修改该字段。");
             queryFilters = ["_id", "=", -1];
           }else{
             queryFilters = ["_id", "in", company_ids];
@@ -223,13 +224,13 @@ fields:
         };
         
         if(perms.modifyAllRecords){
-          /* 如果当前用户对当前业务对象的权限为 modifyAllRecords，那选择单位时可以能从所有单位中选择。*/
+          /* 如果当前用户对当前业务对象的权限为 modifyAllRecords，那选择分部时可以能从所有分部中选择。*/
         }
         else{
-          /* 如果当前用户对当前业务对象的权限为 modifyCompanyRecords，那选择单位时只能从当前用户所属单位中选择。*/
+          /* 如果当前用户对当前业务对象的权限为 modifyCompanyRecords，那选择分部时只能从当前用户所属分部中选择。*/
           var company_ids = Creator.USER_CONTEXT.user.company_ids;
           if(!company_ids.length){
-            console.warn("当前用户不属于任何单位，无权修改该字段。");
+            console.warn("当前用户不属于任何分部，无权修改该字段。");
             queryFilters = ["_id", "=", -1];
           }else{
             queryFilters = ["_id", "in", company_ids];
@@ -286,6 +287,21 @@ fields:
         value: terminated
     omit: true
     hidden: true
+  _table:
+    label: Object Workflow Related Form Table Item Info
+    type: object
+    omit: true
+    hidden: true
+  _table._id:
+    type: text
+    label: Object Workflow Related Form Table Item ID
+    omit: true
+    hidden: true
+  _table._code:
+    type: text
+    label: Object Workflow Related Form Table Code
+    omit: true
+    hidden: true
 actions: 
   standard_query:
     label: Search
@@ -303,6 +319,8 @@ actions:
     label: View Instance
   standard_follow: 
     label: Follow
+  standard_submit_for_approval:
+    label: Submit for Approval
 permission_set:
   none:
     allowCreate: false

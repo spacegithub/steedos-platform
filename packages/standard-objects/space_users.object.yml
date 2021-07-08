@@ -2,8 +2,12 @@ name: space_users
 label: User
 icon: user
 enable_search: true
+enable_inline_edit: false
 sidebar:
   template_name: creator_grid_sidebar_organizations
+  hidden: true
+  enable_hide: true
+  clear_selection_while_hidden: true
 fields:
   name:
     label: Name
@@ -96,11 +100,11 @@ fields:
     filterable: true
     defaultValue: !!js/function |
       function () {
-        /* 主单位 company_id / 所属单位 company_ids 业务逻辑 #170 忽略base.object.yml中的defaultValue、optionsFunction脚本 */
+        /* 主分部 company_id / 所属分部 company_ids 业务逻辑 #170 忽略base.object.yml中的defaultValue、optionsFunction脚本 */
       }
     optionsFunction: !!js/function |
       function () {
-        /* 主单位 company_id / 所属单位 company_ids 业务逻辑 #170 忽略base.object.yml中的defaultValue、optionsFunction脚本 */
+        /* 主分部 company_id / 所属分部 company_ids 业务逻辑 #170 忽略base.object.yml中的defaultValue、optionsFunction脚本 */
       }
   company_id:
     label: Main Division
@@ -110,11 +114,11 @@ fields:
     # hidden: false
     defaultValue: !!js/function |
       function () {
-        /* 主单位 company_id / 所属单位 company_ids 业务逻辑 #170 忽略base.object.yml中的defaultValue、optionsFunction脚本 */
+        /* 主分部 company_id / 所属分部 company_ids 业务逻辑 #170 忽略base.object.yml中的defaultValue、optionsFunction脚本 */
       }
     optionsFunction: !!js/function |
       function () {
-        /* 主单位 company_id / 所属单位 company_ids 业务逻辑 #170 忽略base.object.yml中的defaultValue、optionsFunction脚本 */
+        /* 主分部 company_id / 所属分部 company_ids 业务逻辑 #170 忽略base.object.yml中的defaultValue、optionsFunction脚本 */
       }
 
   position:
@@ -128,6 +132,39 @@ fields:
     reference_to: users
     name: manager
     filterable: true
+  profile:
+    type: lookup
+    label: Profile
+    showIcon: false
+    required: true
+    create: false
+    optionsFunction: !!js/function |
+      function () {
+        var profiles = Creator.odata.query('permission_set', {$filter: "(type eq 'profile')"}, true);
+        var result = [];
+        profiles.forEach(function (item) {
+          result.push({
+            label: item.label,
+            value: item.name
+          });
+        });
+        return result;
+      }
+  contact_id:
+    type: lookup
+    label: Contact
+    reference_to: contacts
+    readonly: true
+  is_supplier:
+    type: boolean
+    label: Supplier
+    readonly: true
+    # hidden: true
+  is_customer:
+    type: boolean
+    label: Customer
+    readonly: true
+    # hidden: true
   work_phone:
     type: text
     label: Work Phone Number
@@ -135,7 +172,7 @@ fields:
     name: work_phone
   # company:
   #   type: text
-  #   label: 单位
+  #   label: 分部
   #   group: '-'
   #   hidden: true
   #   name: company
@@ -192,9 +229,6 @@ fields:
   avatar:
     label: Avatar
     type: avatar
-  password_expired:
-    label: Password expired
-    type: boolean
   hr:
     type: object
     blackbox: true
@@ -207,7 +241,12 @@ fields:
     omit: true
     hidden: true
     name: last_logon 
-    label: Last Logon Date   
+    label: Last Logon Date
+  password_expired:
+    label: Password expired
+    type: boolean
+    omit: false
+    hidden: false
 list_views:
   all:
     label: All Valid Users
@@ -217,6 +256,8 @@ list_views:
       - email
       - position
       - sort_no
+      - username
+      - organization
     filter_scope: space
     filters: [["user_accepted","=",true]]
     sort:
@@ -232,8 +273,40 @@ list_views:
       - email
       - position
       - user_accepted
+      - username
+      - organization
     filter_scope: space
     filters: [["user_accepted","!=",true]]
+    sort:
+      - - created
+        - desc
+  supplier:
+    label: 供应商用户
+    columns:
+      - name
+      - position
+      - mobile
+      - email
+      - user_accepted
+      - username
+      - organization
+    filter_scope: space
+    filters: [["is_supplier","=",true]]
+    sort:
+      - - created
+        - desc
+  customer:
+    label: 客户用户
+    columns:
+      - name
+      - position
+      - mobile
+      - email
+      - user_accepted
+      - username
+      - organization
+    filter_scope: space
+    filters: [["is_customer","=",true]]
     sort:
       - - created
         - desc
@@ -255,6 +328,18 @@ actions:
     label: Invite Users
   setPassword: 
     label: Change Password
+  disable: 
+    label: Disable
+    on: record_only
+  enable: 
+    label: Enable
+    on: record_only
+  lockout:
+    label: Lockout
+    on: record_only
+  unlock:
+    label: Unlock
+    on: record_only
 permission_set:
   user:
     allowCreate: false
@@ -264,7 +349,9 @@ permission_set:
     modifyAllRecords: false
     viewAllRecords: true
     uneditable_fields:
+      - profile
       - password_expired
+      - organizations
   admin:
     allowCreate: true
     allowDelete: false
@@ -279,7 +366,23 @@ permission_set:
     allowRead: true
     modifyCompanyRecords: true
     viewAllRecords: true
-
+    uneditable_fields:
+      - profile
+  customer:
+    allowCreate: false
+    allowDelete: false
+    allowEdit: true
+    allowRead: true
+    modifyAllRecords: false
+    viewAllRecords: false
+    uneditable_fields:
+      - profile
+      - password_expired
+      - organizations
+      - manager
+      - contact_id
+      - position
+      - sort_no
 relatedList:
   - objectName: flow_positions
     filters: !!js/function |

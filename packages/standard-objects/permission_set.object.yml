@@ -1,13 +1,36 @@
 name: permission_set
 label: Permission Set
 icon: groups
+hidden: true
+enable_inline_edit: false
 fields:
   name:
     label: Name
     type: text
     searchable: true
     index: true
-    name: name
+    required: true
+  label:
+    label: Label
+    type: text
+    searchable: true
+    index: true
+    is_name: true
+    required: true
+  type:
+    label: Type
+    type: select
+    firstOption: false
+    options: Profile:profile,Permission set:permission_set
+    defaultValue: permission_set
+  license:
+    label: License
+    type: lookup
+    optionsFunction: !!js/function 
+      function(){
+        return Steedos.getLicenseOptions();
+      }
+    showIcon: false
   assigned_apps:
     label: Assigned Apps
     type: lookup
@@ -20,7 +43,7 @@ fields:
 
               _.forEach(Creator.Apps, function (o, k) {
                 return _options.push({
-                  label: o.name,
+                  label: o.label || o.name,
                   value: k,
                   icon: o.icon_slds
                 });
@@ -36,15 +59,112 @@ fields:
     reference_to: users
     multiple: true
     is_wide: true
-    name: users
     filterable: true
+    depend_on:
+      - type
+    inlineHelpText: When the type is a profile, no user needs to be selected
+  is_system:
+    type: boolean
+    label: System
+    omit: true
+    hidden: true
+    disabled: true
+  password_history:
+    type: lookup
+    group: profile password policy
+    showIcon: false
+    label: 强制密码历史
+    optionsFunction: !!js/function |
+      function(){
+        var options = [];
+        //TODO 支持value = 0
+        for(var i= 1; i < 25; i++){
+          options.push({label: TAPi18n.__('permission_set_field_password_history_options', i), value: `${i}`})
+        }
+        return options;
+      }
+    defaultValue: '3'
+  max_login_attempts:
+    type: select
+    label: 最大无效登录尝试次数
+    group: profile password policy
+    firstOption: false
+    required: true
+    options:
+      - label: '3'
+        value: '3'
+      - label: '5'
+        value: '5'
+      - label: '10'
+        value: '10'
+      - label: '无限制'
+        value: '0'
+    defaultValue: '10'
+  lockout_interval:
+    type: select
+    group: profile password policy
+    label: 锁定有效期间
+    firstOption: false
+    required: true
+    options:
+      - label: '15 分钟'
+        value: '15'
+      - label: '30 分钟'
+        value: '30'
+      - label: '60 分钟'
+        value: '60'
+      - label: '始终(必须由管理员重置)'
+        value: '0'
+    defaultValue: '15'
 list_views:
   all:
-    label: All Permission Set
+    label: All
     filter_scope: space
     columns:
+      - label
       - name
       - users
+      - type
+      - license
+      - is_system
+  permission_set:
+    label: Permission Set
+    filter_scope: space
+    filters:
+      - [["type", "=", "permission_set"]]
+    columns:
+      - label
+      - name
+      - users
+      - type
+      - license
+      - is_system
+  profile:
+    label: Profile
+    filter_scope: space
+    filters:
+      - [["type", "=", "profile"]]
+    columns:
+      - label
+      - name
+      - type
+      - license
+      - is_system
+actions:
+  customize:
+    label: Customize
+    on: record_only
+# relatedList:
+#   - objectName: permission_objects
+#     filters: !!js/function | 
+#       function(parentRecord) {
+#         return [["is_system","=",true], ["permission_set_id","=",parentRecord._id]]
+#       }
+#   - objectName: permission_objects
+#     filters: !!js/function | 
+#       function(parentRecord) {
+#         return [["is_system","<>",true], ["permission_set_id","=",parentRecord._id]]
+#       }
 permission_set:
   user:
     allowCreate: false
@@ -60,3 +180,43 @@ permission_set:
     allowRead: true
     modifyAllRecords: true
     viewAllRecords: true
+  customer:
+    allowCreate: false
+    allowDelete: false
+    allowEdit: false
+    allowRead: true
+    modifyAllRecords: false
+    viewAllRecords: false
+form:
+  initialValues: !!js/function |
+    function(){
+      var listView = Creator.getListView();
+      if(listView && listView.name === 'profile'){
+        return {type: 'profile'}
+      }
+      return {}
+    }
+  beforeEdit: !!js/function |
+    function(){
+      Steedos.PermissionSetManager.changeSchema(this.doc, this.schema);
+    }
+  afterEdit: !!js/function |
+    function(){
+      Steedos.PermissionSetManager.changeSchema(this.doc, this.schema);
+    }
+  beforeView: !!js/function |
+    function(){
+      Steedos.PermissionSetManager.changeSchema(this.doc, this.schema);
+    }
+  beforeInsert: !!js/function |
+    function(){
+      if(this.doc && _.isString(this.doc.users)){
+        this.doc.users = this.doc.users.split(',');
+      }
+    }
+  beforeUpdate: !!js/function |
+    function(){
+      if(this.doc && _.isString(this.doc.users)){
+        this.doc.users = this.doc.users.split(',');
+      }
+    }

@@ -1,6 +1,7 @@
 name: object_triggers
-icon: asset_relationship
+icon: apex
 label: Object Triggers
+hidden: true
 fields:
   name:
     type: text
@@ -15,6 +16,7 @@ fields:
     label: Object
     type: master_detail
     reference_to: objects
+    reference_to_field: name
     required: true
     optionsFunction: !<tag:yaml.org,2002:js/function> |-
       function () {
@@ -92,6 +94,8 @@ fields:
     type: textarea
     required: true
     is_wide: true
+paging:
+  enabled: false
 list_views:
   all:
     columns:
@@ -112,9 +116,9 @@ permission_set:
     modifyAllRecords: false
     viewAllRecords: false
   admin:
-    allowCreate: true
-    allowDelete: true
-    allowEdit: true
+    allowCreate: false
+    allowDelete: false
+    allowEdit: false
     allowRead: true
-    modifyAllRecords: true
-    viewAllRecords: true
+    modifyAllRecords: false
+    viewAllRecords: false

@@ -8,7 +8,7 @@
 import { isJsonMap, JsonMap } from '@salesforce/ts-types';
 import { Validators } from '../validators';
 const Future  = require('fibers/future');
-
+const crypto = require('crypto')
 const yaml = require('js-yaml');
 const fs = require("fs");
 const path = require("path");
@@ -18,6 +18,7 @@ var clone = require("clone")
 import { has, getJsonMap } from '@salesforce/ts-types';
 let STEEDOSCONFIG:any = {};
 const configName = 'steedos-config.yml'
+const licenseName = '.license'
 
 export * from './transform'
 export * from './permission_shares'
@@ -114,6 +115,19 @@ export const loadI18n = (filePath: string)=>{
     return results
 }
 
+export const loadRouters = (filePath: string)=>{
+    let results = []
+    const filePatten = [
+        path.join(filePath, "*.router.js")
+    ]
+    const matchedPaths:[string] = globby.sync(filePatten);
+    _.each(matchedPaths, (matchedPath:string)=>{
+        let router = loadFile(matchedPath);
+        results.push(router);
+    })
+    return results
+}
+
 export const loadTriggers = (filePath: string)=>{
     let results = []
     const filePatten = [
@@ -134,6 +148,22 @@ export const loadActions = (filePath: string)=>{
     let results = []
     const filePatten = [
         path.join(filePath, "*.action.js")
+    ]
+    const matchedPaths:[string] = globby.sync(filePatten);
+    _.each(matchedPaths, (matchedPath:string)=>{
+        let json = loadFile(matchedPath);
+        if(!_.has(json, 'listenTo')){
+            json.listenTo = path.basename(matchedPath).split('.')[0]
+        }
+        results.push(json)
+    })
+    return results
+}
+
+export const loadMethods = (filePath: string)=>{
+    let results = []
+    const filePatten = [
+        path.join(filePath, "*.function.js")
     ]
     const matchedPaths:[string] = globby.sync(filePatten);
     _.each(matchedPaths, (matchedPath:string)=>{
@@ -240,6 +270,20 @@ export function loadAppFiles(filePath: string) {
     return loadApps(filePath);
 }
 
+export function loadObjectDataFiles(filePath: string){
+    let results = []
+    const filePatten = [
+        path.join(filePath, "*.data.json")
+    ]
+    const matchedPaths:[string] = globby.sync(filePatten);
+    _.each(matchedPaths, (matchedPath:string)=>{
+        let records = loadFile(matchedPath);
+        let objectName = path.basename(matchedPath).split('.')[0];
+        results.push({objectName: objectName, records: records});
+    })
+    return results
+}
+
 export function getBaseDirectory(){
     //return require('app-root-path').path
     let cwd = process.cwd();
@@ -262,11 +306,10 @@ function calcString(str: string, content: any = process.env): string{
     })
     eval(`calcFun = function(args){return \`${rev}\`}`);
     let val = calcFun.call({}, content);
-
     if(_.isString(val) && val){
-        return val.replace(/\\r/g, '\r').replace(/\\n/g, '\n')
+        return val.replace(/\\r/g, '\r').replace(/\\n/g, '\n').replace(/undefined/g, '')
     }else{
-        return rev;
+        return null;
     }
 }
 
@@ -318,6 +361,20 @@ export function getSteedosConfig(){
     //     throw new Error('Config file not found: ' + configPath);
     }
     return STEEDOSCONFIG;
+}
+
+export function getLicense(){
+    let license = ""
+    let licensePath = path.join(getBaseDirectory(), licenseName)
+    if (fs.existsSync(licensePath) && !fs.statSync(licensePath).isDirectory()) {
+        license = clone(fs.readFileSync(licensePath, 'utf-8'));
+    }
+    return license;
+}
+
+export function writeLicense(license){
+    let licensePath = path.join(getBaseDirectory(), licenseName)
+    fs.writeFileSync(licensePath, license, "utf8")
 }
 
 export function getRandomString(length) {
@@ -384,4 +441,120 @@ export function isCloudAdminSpace(spaceId){
         return true
     }
     return false
+}
+
+export function getMD5(data){
+    let md5 = crypto.createHash('md5');
+    return md5.update(data).digest('hex');
+}
+
+export function JSONStringify(data) {
+    return JSON.stringify(data, function (key, val) {
+        if (typeof val === 'function') {
+            return val + '';
+        }
+        return val;
+    })
+}
+
+export function isSystemObject(object_name: string) {
+    // 以c结尾的都是零代码上定义的对象
+    return !object_name.endsWith("__c")
+}
+
+/**
+ * 获取对象字段的基本数据类型，目前支持以下数据类型：
+ * "text",
+ * "boolean",
+ * "date",
+ * "datetime",
+ * "number",
+ * "currency",
+ * "percent"
+ * @param objectFields 对象字段集合，即getObjectConfig(object_name)得到的结果
+ * @param key 字段名
+ */
+export function getFieldDataType(objectFields: any, key: string): string {
+    var field: any, result: string;
+    if (objectFields && key) {
+        field = objectFields[key];
+        result = field && field.type;
+        if (["formula", "summary"].indexOf(result) > -1) {
+            result = field.data_type;
+        }
+        return result;
+    } else {
+        return "text";
+    }
+}
+
+export function isValidDate(date: any): boolean {
+    return date instanceof Date && !isNaN(date.getTime());
+}
+
+export function processFilters(filters: [], objectFields: any) {
+    if(filters && filters.length){
+        filters.forEach((filter: any)=>{
+            if(!(!_.isArray(filter) && _.isObject(filter))){
+                // 只有{field:xx,operation:xx,value:xx}格式的才支持转换
+                return;
+            }
+            if(!filter.field){
+                throw new Error("object_fields_error_filter_item_field_required");
+            }
+            if(!filter.operation){
+                throw new Error("object_fields_error_filter_item_operation_required");
+            }
+            if(!filter.value){
+                throw new Error("object_fields_error_filter_item_value_required");
+            }
+            // "text","boolean","date","datetime","number","currency","percent"
+            let dataType = getFieldDataType(objectFields, filter.field);
+            if(["number", "currency", "percent"].indexOf(dataType) > -1){
+                if(typeof filter.value === "string"){
+                    filter.value = Number(filter.value);
+                    if(isNaN(filter.value)){
+                        throw new Error("object_fields_error_filter_item_invalid_number");
+                    }
+                }
+            }
+            else if(dataType === "boolean"){
+                if(typeof filter.value === "string"){
+                    if(["true", "True", "TRUE", "1"].indexOf(filter.value.trim()) > -1){
+                        filter.value = true;
+                    }
+                    else if(["false", "False", "FALSE", "0"].indexOf(filter.value.trim()) > -1){
+                        filter.value = false;
+                    }
+                    else{
+                        throw new Error("object_fields_error_filter_item_invalid_boolean");
+                    }
+                }
+            }
+            else if(dataType === "date"){
+                if(typeof filter.value === "string"){
+                    // 这里转换为按utc的0点时间值来过滤
+                    // 实测输入2020-02-12,new Date结果为2020-02-12T00:00:00.000Z
+                    filter.value = new Date(filter.value);
+                    if(!isValidDate(filter.value)){
+                        throw new Error("object_fields_error_filter_item_invalid_date");
+                    }
+                }
+            }
+            else if(dataType === "datetime"){
+                if(typeof filter.value === "string"){
+                    // 这里转换为按utc时间值来过滤
+                    // 实测输入2020-02-12 12:00,new Date结果为2020-02-12T04:00:00.000Z
+                    filter.value = new Date(filter.value);
+                    if(!isValidDate(filter.value)){
+                        throw new Error("object_fields_error_filter_item_invalid_date");
+                    }
+                }
+            }
+        });
+    }
+}
+
+export function validateFilters(filters: [], objectFields: any) {
+    processFilters(clone(filters), objectFields);
 }

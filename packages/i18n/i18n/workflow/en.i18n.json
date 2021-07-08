@@ -37,6 +37,7 @@
 	"instance_readed": "Read",
 	"instance_next_step": "Next Step",
 	"instance_next_step_users": "Next Step User(s)",
+	"instance_next_step_user_countersign": "Next Step User(s)",
 	"instance_initiator": "Initiator",
 	"instance_approval_history": "Approval History",
 	"instance_in_progress": "In Progress",
@@ -699,6 +700,7 @@
 	"process_delegation_rules_to_name": "To",
 	"process_delegation_rules_start_must_lt_end": "Strat time must less than end time",
 	"process_delegation_rules_description": "{$userName} delegated",
+	"process_delegation_rules_cannot_deltegation_eachother": "Only allow one-way delegation",
 	"instance_handler_name": "Handler",
 	"instance_handler_organization_fullname": "Organization",
 
@@ -719,5 +721,10 @@
 
 	"instance_print_traces_simplify": "Simplify",
 	"instance_print_a4_vertical": "A4Vertical",
-	"instance_print_a4_horizontal": "A4Horizontal"
+	"instance_print_a4_horizontal": "A4Horizontal",
+
+	"object_workflows_sync_history_instances_success": "success",
+	"object_workflows_sync_history_instances_failed": "deal with sync failed approvals",
+
+	"workflow_attachment_office_online_preview": "Preview"
 }

@@ -307,10 +307,10 @@
 	"creator_record_remove_swal_suc": "删除成功",
 	"creator_record_remove_swal_title_suc": "%s已删除",
 	"creator_record_tab_detail": "详细",
-	"creator_record_tab_chatter": "评论",
-	"creator_record_chat": "评论",
+	"creator_record_tab_chatter": "留言",
+	"creator_record_chat": "留言",
 	"creator_record_chat_write": "写评论",
-	"creator_record_chat_send": "评论",
+	"creator_record_chat_send": "留言",
 	"creator_record_chat_upload": "添加文件",
 
 	"change_phone": "绑定手机号",
@@ -410,6 +410,7 @@
 
 	"space_users_error_roles_used": "已有角色指定该用户：{$names}",
 	"space_users_error_flows_used": "已有流程指定该用户为处理人：{$names}",
+	"space_users_error_can_not_remove": "不能删除用户",
 
 	"contact_need_phone_or_email": "手机和邮箱不能同时为空",
 
@@ -513,5 +514,6 @@
 	"menu_account_background": "背景图",
 
 	"notifications__object": "通知",
-	"favorites__object": "我的收藏夹"
+	"favorites__object": "我的收藏夹",
+  	"duplicate_unique_key": "字段%s值不能重复"
 }

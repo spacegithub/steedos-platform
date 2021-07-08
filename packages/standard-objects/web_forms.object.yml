@@ -1,26 +1,21 @@
 name: web_forms
 label: Web Forms
-icon: account
+icon: display_text
 enable_api: true
+hidden: true
 fields:
+  name:
+    label: Name
+    type: text
+    required: true
   object_name:
     label: Object
     type: lookup
     optionsFunction: !<tag:yaml.org,2002:js/function> |-
       function () {
-                var _options;
-              _options = [];
-              _.forEach(Creator.Objects, function (o, k) {
-                  return _options.push({
-                    label: o.label,
-                    value: k,
-                    icon: o.icon
-                });
-              });
-              return _options;
-            }
+        return Steedos.getObjectsOptions();
+      }
     required: true
-    is_wide: true
     filterable: true
     index: true
   fields:
@@ -29,46 +24,86 @@ fields:
     multiple: true
     required: true
     is_wide: true
+    inlineHelpText: 'The fields displayed in the online form currently only support text, textarea, and drop-down boxes.'
     depend_on:
       - object_name
     defaultIcon: service_contract
     optionsFunction: !<tag:yaml.org,2002:js/function> |- 
       function (values) {
-                return Creator.getObjectLookupFieldOptions(values != null ? values.object_name : void 0, true, true);
+              var object_name = values != null ? values.object_name : void 0;
+              var is_skip_hide = true;
+              var supportFieldTypes = ["text", "textarea", "select"];
+              var _object, _options, fields, icon;
+              _options = [];
+              if (!object_name) {
+                  return _options;
+              }
+              _object = Creator.getObject(object_name);
+              fields = _object != null ? _object.fields : void 0;
+              icon = _object != null ? _object.icon : void 0;
+              _.forEach(fields, function (f, k) {
+                  if (is_skip_hide && f.hidden) {
+                      return;
+                  }
+                  if (supportFieldTypes.indexOf(f.type) < 0) {
+                      return;
+                  }
+                  if (f.type === "select") {
+                      _options.push({
+                          label: "" + (f.label || k),
+                          value: k,
+                          icon: icon
+                      });
+                  } else {
+                      _options.push({
+                          label: f.label || k,
+                          value: k,
+                          icon: icon
+                      });
+                  }
+              });
+
+              return _options;
             }
     filterable: true
+  return_url:
+    label: Return URL
+    type: text
+    is_wide: true
+    required: true
+    inlineHelpText: 'When the user submits the form, it automatically jumps to this address.'
   record_owner:
-    label: Owner
+    label: Default Owner
     type: lookup
     reference_to: users
     sortable: true
     index: true
+    inlineHelpText: 'When a user submits a form, the creator and owner of the corresponding record are automatically updated.'
   notification_users:
     type: lookup
     label: Notification Users
     reference_to: users
     multiple: true
     filterable: true
+    inlineHelpText: 'When a user submits a form, the relevant person is automatically notified.'
   generated_html: 
     label: Generated Html
     type: code
     is_wide: true
     omit: true
-  description:
-    label: Description
-    type: textarea
-    is_wide: true
 list_views:
   all:
     label: All Web Forms
     columns:
+      - name
       - object_name
       - record_owner
       - modified
     filter_scope: space
 actions: 
-  copy: 
+  copyHtmlCode: 
     label: Copy Html Code
+    on: record_only
 permission_set:
   user:
     allowCreate: false

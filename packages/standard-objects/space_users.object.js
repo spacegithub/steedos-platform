@@ -7,6 +7,33 @@ db.space_users = core.newCollection('space_users');
 
 db.space_users._simpleSchema = new SimpleSchema;
 
+function addSpaceAdmin(spaceId, userId){
+    let space = db.spaces.findOne({_id: spaceId}, {fields: {admins: 1}});
+    if(space){
+        let admins = space.admins || [];
+        admins.push(userId);
+        db.spaces.update({_id: space._id}, {$set:{admins: _.uniq(admins)}})
+    }
+}
+
+function removeSpaceAdmin(spaceId, userId){
+    let space = db.spaces.findOne({_id: spaceId}, {fields: {admins: 1}});
+    if(space){
+        let admins = space.admins || [];
+        admins = _.difference(admins, [userId]);
+        db.spaces.update({_id: space._id}, {$set:{admins: _.uniq(admins)}})
+    }
+}
+
+function checkMobile(mobile, config){
+    if(config.mobile_phone_locales){
+        return !(mobile.startsWith('+') || !validator.isMobilePhone(mobile, config.mobile_phone_locales || ['zh-CN']))
+    }else{
+        let mobileReg = config.mobile_regexp || '^[0-9]{11}$'
+        return new RegExp(mobileReg).test(mobile)
+    }
+}
+
 Meteor.startup(function () {
     if (Meteor.isServer) {
         db.space_users.insertVaildate = function (userId, doc) {
@@ -39,7 +66,7 @@ Meteor.startup(function () {
                 }
 
                 if (doc.mobile) {
-                    if (doc.mobile.startsWith('+') || !validator.isMobilePhone(doc.mobile, config.mobile_phone_locales || ['zh-CN'])) {
+                    if (!checkMobile(doc.mobile, config)) {
                         throw new Meteor.Error(400, "mobile_format_error");
                     }
                 }
@@ -100,7 +127,7 @@ Meteor.startup(function () {
             if(modifier.$set && modifier.$set.mobile){
                 const steedosConfig = objectql.getSteedosConfig();
                 const config = steedosConfig.accounts || {};
-                if (modifier.$set.mobile.startsWith('+') || !validator.isMobilePhone(modifier.$set.mobile, config.mobile_phone_locales || ['zh-CN'])) {
+                if (!checkMobile(modifier.$set.mobile, config)) {
                     throw new Meteor.Error(400, "mobile_format_error");
                 }
             }
@@ -151,7 +178,16 @@ Meteor.startup(function () {
             }
             db.space_users.insertVaildate(userId, doc);
 
+            if(doc.profile){
+                if(doc.profile === 'admin' && !Creator.isSpaceAdmin(doc.space, userId)){
+                    throw new Meteor.Error(400, "Only the administrator can set the profile to admin");
+                }
+            }else{
+                doc.profile = 'user'
+            }
+
             if(doc.user){
+                doc.owner = doc.user
                 let userDoc = db.users.findOne({_id: doc.user});
                 let syncProp = spaceUserCore.pickNeedSyncProp(userDoc);
                 Object.assign(doc, syncProp);
@@ -231,6 +267,10 @@ Meteor.startup(function () {
                 if (!doc.name) {
                     throw new Meteor.Error(400, "space_users_error_name_required");
                 }
+                doc.owner = doc.user
+            }
+            if (doc.user) {
+                doc.owner = doc.user;
             }
             if (doc.organizations && doc.organizations.length > 0) {
                 // 如果主组织未设置或设置的值不在doc.organizations内，则自动设置为第一个组织
@@ -258,6 +298,14 @@ Meteor.startup(function () {
                     return organizationObj.updateUsers();
                 });
             }
+            if(doc.contact_id){
+                Creator.getCollection("contacts").direct.update({_id: doc.contact_id}, {$set: {user: doc.user}})
+            }
+
+            if(doc.profile === 'admin'){
+                addSpaceAdmin(doc.space, doc.user);
+            }
+
             // if (!doc.is_registered_from_space) {
             //     user = db.users.findOne(doc.user, {
             //         fields: {
@@ -325,6 +373,30 @@ Meteor.startup(function () {
             if(modifier.$set.email){
                 modifier.$set.email = modifier.$set.email.toLowerCase().trim();
             }
+
+            if(_.has(modifier.$set, 'contact_id') && doc.contact_id != modifier.$set.contact_id){
+                throw new Meteor.Error(400, "space_users_error_not_change_contact_id");
+            }
+
+            if(_.has(modifier.$set, 'profile') && doc.profile != modifier.$set.profile){
+                if(!Creator.isSpaceAdmin(doc.space, userId)){
+                    throw new Meteor.Error(400, "can not change profile");
+                }
+
+                // 管理员不允许把自己的简档设置为非管理员 #804
+                if (doc.user === userId && modifier.$set.profile != 'admin') {
+                    throw new Meteor.Error(400, 'spaces_error_space_admins_required');
+                }
+
+                if(doc.profile === 'admin'){
+                    removeSpaceAdmin(doc.space, doc.user);
+                }
+
+                if(modifier.$set.profile === 'admin'){
+                    addSpaceAdmin(doc.space, doc.user);
+                }
+            }
+
             db.space_users.updatevaildate(userId, doc, modifier);
             if (modifier.$set.organizations && modifier.$set.organizations.length > 0) {
                 // 修改所有组织后，强制把主组织自动设置为第一个组织
@@ -449,28 +521,28 @@ Meteor.startup(function () {
                 db.space_users.update_company_ids(doc._id, doc);
             }
         });
-        db.space_users.before.remove(function (userId, doc) {
-            var isOrgAdmin, space;
-            // check space exists
-            space = db.spaces.findOne(doc.space);
-            if (!space) {
-                throw new Meteor.Error(400, "space_users_error_space_not_found");
-            }
-            // if (space.admins.indexOf(userId) < 0) {
-            //     // 要删除用户，需要至少有一个组织权限
-            //     isOrgAdmin = Steedos.isOrgAdminByOrgIds(doc.organizations, userId);
-            //     if (!isOrgAdmin) {
-            //         throw new Meteor.Error(400, "organizations_error_org_admins_only");
-            //     }
-            // }
-            // 不能删除当前工作区的拥有者
-            if (space.owner === doc.user) {
-                throw new Meteor.Error(400, "space_users_error_remove_space_owner");
-            }
-            if (space.admins.indexOf(doc.user) > 0) {
-                throw new Meteor.Error(400, "space_users_error_remove_space_admins");
-            }
-        });
+        // db.space_users.before.remove(function (userId, doc) {
+        //     var isOrgAdmin, space;
+        //     // check space exists
+        //     space = db.spaces.findOne(doc.space);
+        //     if (!space) {
+        //         throw new Meteor.Error(400, "space_users_error_space_not_found");
+        //     }
+        //     // if (space.admins.indexOf(userId) < 0) {
+        //     //     // 要删除用户，需要至少有一个组织权限
+        //     //     isOrgAdmin = Steedos.isOrgAdminByOrgIds(doc.organizations, userId);
+        //     //     if (!isOrgAdmin) {
+        //     //         throw new Meteor.Error(400, "organizations_error_org_admins_only");
+        //     //     }
+        //     // }
+        //     // 不能删除当前工作区的拥有者
+        //     if (space.owner === doc.user) {
+        //         throw new Meteor.Error(400, "space_users_error_remove_space_owner");
+        //     }
+        //     if (space.admins.indexOf(doc.user) > 0) {
+        //         throw new Meteor.Error(400, "space_users_error_remove_space_admins");
+        //     }
+        // });
         db.space_users.after.remove(function (userId, doc) {
             var content, e, locale, space, subject, user;
             if (doc.organizations) {
@@ -741,13 +813,14 @@ Meteor.startup(function () {
             }
         });
         return db.space_users.before.remove(function (userId, doc) {
-            // 禁用、从工作区移除用户时，检查用户是否被指定为角色成员或者步骤指定处理人 #1288
-            return db.space_users.vaildateUserUsedByOther(doc);
+            // // 禁用、从工作区移除用户时，检查用户是否被指定为角色成员或者步骤指定处理人 #1288
+            // return db.space_users.vaildateUserUsedByOther(doc);
+            throw new Meteor.Error(400, "space_users_error_can_not_remove");
         });
     }
 });
 
-Creator.Objects['space_users'].actions = {
+let actions = {
     import: {
         label: "导入",
         on: "list",
@@ -818,7 +891,8 @@ Creator.Objects['space_users'].actions = {
         todo: function (object_name, record_id, fields) {
 
             if(!Creator.isSpaceAdmin()){
-                Modal.show("reset_password_modal");
+                // Modal.show("reset_password_modal");
+                Steedos.openWindow(Steedos.absoluteUrl("/accounts/a/#/update-password"))
                 return;
             }
 
@@ -873,13 +947,13 @@ Creator.Objects['space_users'].actions = {
                 // permissions配置没有权限则不给权限
                 return false
             }
-            // 组织管理员要单独判断，只给到有对应单位的组织管理员权限
+            // 组织管理员要单独判断，只给到有对应分部的组织管理员权限
             if(Steedos.isSpaceAdmin()){
                 return true;
             }
             else{
                 var userId = Steedos.userId();
-                //当前选中组织所属单位的管理员才有权限
+                //当前选中组织所属分部的管理员才有权限
                 if(organization && organization.company_id && organization.company_id.admins){
                     return organization.company_id.admins.indexOf(userId) > -1;
                 }
@@ -901,20 +975,20 @@ Creator.Objects['space_users'].actions = {
                 }
             }
 
-            // 组织管理员要单独判断，只给到有对应单位的组织管理员权限
+            // 组织管理员要单独判断，只给到有对应分部的组织管理员权限
             if(Steedos.isSpaceAdmin()){
                 return true;
             }
             else{
                 var userId = Steedos.userId();
                 if(organization){
-                    //当前选中组织所属单位的管理员才有权限
+                    //当前选中组织所属分部的管理员才有权限
                     if(organization.company_id && organization.company_id.admins){
                         return organization.company_id.admins.indexOf(userId) > -1;
                     }
                 }
                 else{
-                    // 用户详细界面拿不到当前选中组织时，只能从记录本身所属单位的管理员中判断，只要当前用户是任何一个所属单位的管理员则有权限
+                    // 用户详细界面拿不到当前选中组织时，只能从记录本身所属分部的管理员中判断，只要当前用户是任何一个所属分部的管理员则有权限
                     var record = Creator.getObjectRecord(object_name, record_id);
                     if(record && record.company_ids && record.company_ids.length){
                         return _.any(record.company_ids,function(item){
@@ -934,20 +1008,20 @@ Creator.Objects['space_users'].actions = {
             //     // permissions配置没有权限则不给权限
             //     return false
             // }
-            // // 组织管理员要单独判断，只给到有对应单位的组织管理员权限
+            // // 组织管理员要单独判断，只给到有对应分部的组织管理员权限
             // if(Steedos.isSpaceAdmin()){
             //     return true;
             // }
             // else{
             //     var userId = Steedos.userId();
             //     if(organization){
-            //         //当前选中组织所属单位的管理员才有权限
+            //         //当前选中组织所属分部的管理员才有权限
             //         if(organization.company_id && organization.company_id.admins){
             //             return organization.company_id.admins.indexOf(userId) > -1;
             //         }
             //     }
             //     else{
-            //         // 用户详细界面拿不到当前选中组织时，只能从记录本身所属单位的管理员中判断，只要当前用户是任何一个所属单位的管理员则有权限
+            //         // 用户详细界面拿不到当前选中组织时，只能从记录本身所属分部的管理员中判断，只要当前用户是任何一个所属分部的管理员则有权限
             //         var record = Creator.getObjectRecord(object_name, record_id);
             //         if(record && record.company_ids && record.company_ids.length){
             //             return _.any(record.company_ids,function(item){
@@ -962,13 +1036,19 @@ Creator.Objects['space_users'].actions = {
         label: "Invite Users",
         on: "list",
         visible: function(){
-            return Creator.isSpaceAdmin();
+            if (Creator.isSpaceAdmin()){
+                let space = Creator.odata.get("spaces", Session.get("spaceId"), "enable_register");
+                if(space && space.enable_register){
+                    return true;
+                }
+            }
         },
         todo: function(){
             // var address = window.location.origin + "/accounts/a/#/signup?redirect_uri=" + encodeURIComponent(window.location.origin + __meteor_runtime_config__.ROOT_URL_PATH_PREFIX) + "&X-Space-Id=" + Steedos.getSpaceId();
-            let address = window.location.origin + "/accounts/a/#/signup?&X-Space-Id=" + Steedos.getSpaceId();
+            var inviteToken = Steedos.getInviteToken();
+            let address = window.location.origin + "/accounts/a/#/signup?invite_token=" + inviteToken;
             if(_.isFunction(Steedos.isCordova) && Steedos.isCordova()){
-                address = Meteor.absoluteUrl("accounts/a/#/signup?&X-Space-Id=" + Steedos.getSpaceId())
+                address = Meteor.absoluteUrl("accounts/a/#/signup?invite_token=" + inviteToken)
             }
             
             var clipboard = new Clipboard('.list-action-custom-invite_space_users');
@@ -993,3 +1073,240 @@ Creator.Objects['space_users'].actions = {
         }
     }
 }
+
+Creator.Objects.space_users.actions = Object.assign({}, Creator.Objects.space_users.actions, actions);
+
+let methods = {
+    disable: async function (req, res) {
+        try {
+            const params = req.params;
+            const user = req.user;
+            if (!user.is_space_admin) {
+                res.status(400).send({
+                    success: false,
+                    error: {
+                        reason: "space_users_method_disable_enable_error_only_space_admin"
+                    }
+                });
+                return;
+            }
+            const steedosSchema = objectql.getSteedosSchema();
+            let spaceUser = await steedosSchema.getObject('space_users').findOne(params._id, { fields: ["user_accepted", "user", "profile"]});
+            if (spaceUser.user === user.userId){
+                res.status(400).send({
+                    success: false,
+                    error: {
+                        reason: "space_users_method_error_can_not_own"
+                    }
+                });
+                return;
+            }
+            if (!spaceUser.user_accepted) {
+                res.status(400).send({
+                    success: false,
+                    error: {
+                        reason: "space_users_method_error_can_not_disable_disabled"
+                    }
+                });
+                return;
+            }
+            let result = await steedosSchema.getObject('space_users').updateOne(params._id, { user_accepted: false, profile: spaceUser.profile});
+            if(result){
+                res.status(200).send({ success: true });
+            }
+            else{
+                res.status(400).send({
+                    success: false,
+                    error: {
+                        reason: "The object updateOne return nothing."
+                    }
+                });
+            }
+        } catch (error) {
+            res.status(400).send({
+                success: false,
+                error: {
+                    reason: error.reason,
+                    message: error.message,
+                    details: error.details,
+                    stack: error.stack
+                }
+            });
+        }
+    },
+    enable: async function (req, res) {
+        try {
+            const params = req.params;
+            const user = req.user;
+            if (!user.is_space_admin){
+                res.status(400).send({
+                    success: false,
+                    error: {
+                        reason: "space_users_method_disable_enable_error_only_space_admin"
+                    }
+                });
+                return;
+            }
+            const steedosSchema = objectql.getSteedosSchema();
+            let spaceUser = await steedosSchema.getObject('space_users').findOne(params._id, { fields: ["user_accepted", "user", "profile"] });
+            if (spaceUser.user === user.userId) {
+                res.status(400).send({
+                    success: false,
+                    error: {
+                        reason: "space_users_method_error_can_not_own"
+                    }
+                });
+                return;
+            }
+            if (spaceUser.user_accepted) {
+                res.status(400).send({
+                    success: false,
+                    error: {
+                        reason: "space_users_method_error_can_not_enable_enabled"
+                    }
+                });
+                return;
+            }
+            let result = await steedosSchema.getObject('space_users').updateOne(params._id, { user_accepted: true, profile: spaceUser.profile });
+            if(result){
+                res.status(200).send({ success: true });
+            }
+            else{
+                res.status(400).send({
+                    success: false,
+                    error: {
+                        reason: "The object updateOne return nothing."
+                    }
+                });
+            }
+        } catch (error) {
+            res.status(400).send({
+                success: false,
+                error: {
+                    reason: error.reason,
+                    message: error.message,
+                    details: error.details,
+                    stack: error.stack
+                }
+            });
+        }
+    },
+    is_lockout: async function (req, res) {
+        try {
+            const params = req.params;
+            const steedosSchema = objectql.getSteedosSchema();
+            let spaceUser = await steedosSchema.getObject('space_users').findOne(params._id, { fields: ["user_accepted", "user"] });
+            let result = await steedosSchema.getObject('users').findOne(spaceUser.user)
+            if(result){
+                res.status(200).send({ lockout: result.lockout });
+            }
+            else{
+                res.status(400).send({
+                    success: false,
+                    error: {
+                        reason: "The object updateOne return nothing."
+                    }
+                });
+            }
+        } catch (error) {
+            res.status(400).send({
+                success: false,
+                error: {
+                    reason: error.reason,
+                    message: error.message,
+                    details: error.details,
+                    stack: error.stack
+                }
+            });
+        }
+    },
+    lockout: async function (req, res) {
+        try {
+            const params = req.params;
+            const user = req.user;
+            if (!user.is_space_admin){
+                res.status(400).send({
+                    success: false,
+                    error: {
+                        reason: "space_users_method_unlock_lockout_error_only_space_admin"
+                    }
+                });
+                return;
+            }
+            const steedosSchema = objectql.getSteedosSchema();
+            let spaceUser = await steedosSchema.getObject('space_users').findOne(params._id, { fields: ["user_accepted", "user"] });
+            if (spaceUser.user === user.userId) {
+                res.status(400).send({
+                    success: false,
+                    error: {
+                        reason: "不能锁定您自己的帐户。"
+                    }
+                });
+                return;
+            }
+            let result = await steedosSchema.getObject('users').updateOne(spaceUser.user, {lockout: true});
+            if(result){
+                res.status(200).send({ success: true });
+            }
+            else{
+                res.status(400).send({
+                    success: false,
+                    error: {
+                        reason: "The object updateOne return nothing."
+                    }
+                });
+            }
+        } catch (error) {
+            res.status(400).send({
+                success: false,
+                error: {
+                    reason: error.reason,
+                    message: error.message,
+                    details: error.details,
+                    stack: error.stack
+                }
+            });
+        }
+    },
+    unlock: async function (req, res) {
+        try {
+            const params = req.params;
+            const user = req.user;
+            if (!user.is_space_admin){
+                res.status(400).send({
+                    success: false,
+                    error: {
+                        reason: "space_users_method_unlock_lockout_error_only_space_admin"
+                    }
+                });
+                return;
+            }
+            const steedosSchema = objectql.getSteedosSchema();
+            let spaceUser = await steedosSchema.getObject('space_users').findOne(params._id, { fields: ["user_accepted", "user"] });
+            let result = await steedosSchema.getObject('users').updateOne(spaceUser.user, {lockout: false, login_failed_number: 0, login_failed_lockout_time: undefined});
+            if(result){
+                res.status(200).send({ success: true });
+            }
+            else{
+                res.status(400).send({
+                    success: false,
+                    error: {
+                        reason: "The object updateOne return nothing."
+                    }
+                });
+            }
+        } catch (error) {
+            res.status(400).send({
+                success: false,
+                error: {
+                    reason: error.reason,
+                    message: error.message,
+                    details: error.details,
+                    stack: error.stack
+                }
+            });
+        }
+    }
+};
+
+Creator.Objects.space_users.methods = Object.assign({}, Creator.Objects.space_users.methods, methods);

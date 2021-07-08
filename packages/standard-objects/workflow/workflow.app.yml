@@ -3,12 +3,15 @@ name: Workflow
 icon_slds: approval
 is_creator: false
 admin_menus:
-  # 单位管理员可以创建和设置流程及相关参数。
+  # 分部管理员可以创建和设置流程及相关参数。
   - _id: menu_workflow
     name: Workflows
     permission_sets:
-      - user
+      - admin
+      - workflow_admin
     expanded: false
+    sort: 500
+    # parent: process_automation
   - _id: flows
     name: Workflows
     permission_sets:
@@ -22,14 +25,15 @@ admin_menus:
       - admin
       - workflow_admin
     object_name: flow_roles
-    parent: menu_workflow
-  - _id: flow_positions
-    name: Workflow Positions
-    permission_sets:
-      - admin
-      - workflow_admin
-    object_name: flow_positions
-    parent: menu_workflow
+    parent: menu_users
+    sort: 8000
+  # - _id: flow_positions
+  #   name: Workflow Positions
+  #   permission_sets:
+  #     - admin
+  #     - workflow_admin
+  #   object_name: flow_positions
+  #   parent: menu_workflow
   - _id: categories
     name: Workflow Categories
     permission_sets:
@@ -69,16 +73,17 @@ admin_menus:
     permission_sets:
       - user
     object_name: process_delegation_rules
+    parent: account
+  - _id: object_workflows
+    name: 对象与流程映射关系
+    permission_sets:
+      - admin
+    object_name: object_workflows
     parent: menu_workflow
-  # - _id: object_workflows
-  #   name: 对象与流程映射关系
-  #   permission_sets:
-  #     - admin
-  #   object_name: object_workflows
-  #   parent: menu_workflow
   - _id: roles
     name: Roles
     permission_sets:
       - admin
     object_name: roles
-    parent: menu_workflow
+    parent: menu_users
+    sort: 9000
