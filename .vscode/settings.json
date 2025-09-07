@@ -1,11 +1,26 @@
 {
+    "files.exclude": {
+        "**/.dist": true,
+        "**/.meteor/local": true,
+        "**/.npm": true
+    },
     "yaml.completion": true,
     "yaml.customTags": [
         "tag:yaml.org,2002:js/function"
     ],
     "yaml.schemas": {
-        "https://steedos.github.io/steedos-platform/packages/schemas/app/schema.json": "/*.app.yml",
-        "https://steedos.github.io/steedos-platform/packages/schemas/object/schema.json": "/*.object.yml",
-        "https://steedos.github.io/steedos-platform/packages/schemas/dashboard/schema.json": "/*.dashboard.yml"
-    }
+        "./packages/schemas/app/schema.json": "/*.app.yml",
+        "./packages/schemas/object/schema.json": "/*.object.yml",
+        "./packages/schemas/field/schema.json": "/*.field.yml",
+        "./packages/schemas/button/schema.json": "/*.button.yml",
+        "./packages/schemas/listview/schema.json": "/*.listview.yml",
+        "./packages/schemas/permission/schema.json": "/*.permission.yml",
+        "./packages/schemas/permissionset/schema.json": "/*.permissionset.yml",
+        "./packages/schemas/profile/schema.json": "/*.profile.yml",
+        "./packages/schemas/dashboard/schema.json": "/*.dashboard.yml"
+    },
+    "cSpell.words": [
+        "DEEPSEEK",
+        "historys"
+    ]
 }

@@ -1,3 +1,10 @@
+/*
+ * @Author: sunhaolin@hotoa.com
+ * @Date: 2021-06-03 15:11:52
+ * @LastEditors: baozhoutao@steedos.com
+ * @LastEditTime: 2024-02-27 14:47:31
+ * @Description: 
+ */
 import { Dictionary } from '@salesforce/ts-types';
 import { SteedosQueryOptions, SteedosQueryFilters } from "../types/query";
 import { SteedosIDType, SteedosObjectType } from "../types";
@@ -45,7 +52,7 @@ export type SteedosDriverConfig = {
     /**
      * Database options.
      */
-    readonly options?: any;
+    options?: any;
     /**
      * Print sql log for driver.
      */
@@ -54,6 +61,7 @@ export type SteedosDriverConfig = {
      * collection locale.
      */
     readonly locale?: string;
+
 };
 
 
@@ -69,6 +77,7 @@ export interface SteedosDriver {
     close();
     getSupportedColumnTypes(): SteedosFieldDBType[];
     find(tableName: string, query: SteedosQueryOptions, userId?: SteedosIDType): any;
+    aggregate?(tableName: string, query: SteedosQueryOptions, externalPipeline: any, userId?: SteedosIDType): any;
     findOne(tableName: string, id: SteedosIDType, query: SteedosQueryOptions, userId?: SteedosIDType): any;
     insert(tableName: string, doc: Dictionary<any>, userId?: SteedosIDType): any;
     update(tableName: string, id: SteedosIDType | SteedosQueryOptions, doc: Dictionary<any>, userId?: SteedosIDType): any;
@@ -76,13 +85,22 @@ export interface SteedosDriver {
     updateMany?(tableName: string, queryFilters: SteedosQueryFilters, doc: Dictionary<any>, userId?: SteedosIDType): any;
     delete(tableName: string, id: SteedosIDType | SteedosQueryOptions, userId?: SteedosIDType): any;
     directUpdate(tableName: string, id: SteedosIDType | SteedosQueryOptions, doc: Dictionary<any>, userId?: SteedosIDType): any;
+    directFind(tableName: string, query: SteedosQueryOptions, userId?: SteedosIDType): any;
     directInsert(tableName: string, doc: Dictionary<any>, userId?: SteedosIDType): any;
     directDelete(tableName: string, id: SteedosIDType | SteedosQueryOptions, userId?: SteedosIDType): any;
+    directAggregate?(tableName: string, query: SteedosQueryOptions, externalPipeline: any, userId?: SteedosIDType): any;
+    directAggregatePrefixalPipeline?(tableName: string, query: SteedosQueryOptions, prefixalPipeline: any, userId?: SteedosIDType): any;
+    directUpdateMany?(tableName: string, queryFilters: SteedosQueryFilters, doc: Dictionary<any>, userId?: SteedosIDType): any;
     count(tableName: string, query: SteedosQueryOptions, userId?: SteedosIDType): any;
+    formatRecord?(doc: Dictionary<any>, objectConfig: SteedosObjectType): any;
     dropEntities?(): any;
     registerEntities?(objects: Dictionary<SteedosObjectType>): any;
     dropTables?(): any;
     createTables?(objects: Dictionary<SteedosObjectType>): any;
     init(objects: Dictionary<SteedosObjectType>): any;
+    _makeNewID?(tableName?: string): any;
+    encryptValue?(value: any): any;
+    decryptValue?(value: any): any;
+    run?(sql: string, param?: any)
 }
 

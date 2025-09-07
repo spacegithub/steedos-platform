@@ -1,0 +1,39 @@
+name: organizations
+label: Department
+icon: team_member
+enable_search: true
+enable_tree: true
+enable_enhanced_lookup: true
+enable_inline_edit: false
+version: 2
+pages:
+  lookup: 
+    is_enable: true
+    amis_schema: |-
+      {
+        "source": {
+          "url": "${context.rootUrl}/service/api/organizations/root",
+          "method": "get",
+          "cache": 300000,
+          "headers": {
+            "Authorization": "Bearer ${context.tenantId},${context.authToken}"
+          },
+          "requestAdaptor": "return Steedos.organizationsTree.getApiRequestAdaptor(api, context, { isLookup: true });",
+          "adaptor": "return Steedos.organizationsTree.getApiAdaptor(payload, response, api, context, { isLookup: true });"
+        },
+        "pickerSchema": {
+          "deferApi": {
+            "method": "post",
+            "url": "${context.rootUrl}/graphql",
+            "data": {
+              "$self": "$$"
+            },
+            "headers": {
+              "Authorization": "Bearer ${context.tenantId},${context.authToken}"
+            },
+            "cache": 3000,
+            "requestAdaptor": "return Steedos.organizationsTree.getDeferApiRequestAdaptor(api, context, { isLookup: true });",
+            "adaptor": "return Steedos.organizationsTree.getDeferApiAdaptor(payload, response, api, context, { isLookup: true });"
+          }
+        }
+      }

@@ -3,9 +3,9 @@ import { getSteedosSchema } from '@steedos/objectql';
 import { getODataManager } from './server';
 
 import querystring = require('querystring');
-import odataV4Mongodb = require('odata-v4-mongodb');
+import odataV4Mongodb = require('@steedos/odata-v4-mongodb');
 import _ = require('underscore');
-import { Response } from 'express';
+import { Response } from 'express-serve-static-core';
 import * as core from "express-serve-static-core";
 interface Request extends core.Request {
     user: any;
@@ -28,7 +28,7 @@ const getObjectList = async function (req: Request, res: Response) {
         }
 
         getODataManager().removeInvalidMethod(queryParams);
-        let qs = decodeURIComponent(querystring.stringify(queryParams));
+        let qs = decodeURIComponent(querystring.stringify(queryParams as querystring.ParsedUrlQueryInput));
         if (qs) {
             var createQuery = odataV4Mongodb.createQuery(qs);
         } else {
@@ -42,14 +42,16 @@ const getObjectList = async function (req: Request, res: Response) {
 
         if (userId) {
             let entities = [];
-            let filters = queryParams.$filter;
+            let filters = queryParams.$filter as string || '';
             let fields = [];
             // filters = `(${filters}) and (space eq \'${spaceId}\')`;
             if (queryParams.$select) {
                 fields = _.keys(createQuery.projection)
-            } else {
-                fields = _.keys(collection.toConfig().fields);
             }
+            if(collection.datasource && collection.datasource.name === "default"){
+                filters = getODataManager().excludeDeleted(filters);
+            }
+
             if (queryParams.$top !== '0') {
                 let query = { filters: filters, fields: fields, top: Number(queryParams.$top) };
                 if (queryParams.hasOwnProperty('$skip')) {
@@ -103,12 +105,13 @@ const getObjectRecent = async function (req: Request, res: Response) {
             let filterstr = `(record/o eq '${key}') and (created_by eq '${userId}')`;
             let recent_view_options: any = { filters: filterstr, fields: ['record'], sort: 'created desc' };
             let recent_view_records = await recent_view_collection.find(recent_view_options, userSession);
+            let odataCount = recent_view_records.length;
             let recent_view_records_ids: any = _.pluck(recent_view_records, 'record');
             recent_view_records_ids = recent_view_records_ids.getProperty('ids');
             recent_view_records_ids = _.flatten(recent_view_records_ids);
             recent_view_records_ids = _.uniq(recent_view_records_ids);
             getODataManager().removeInvalidMethod(queryParams);
-            let qs = decodeURIComponent(querystring.stringify(queryParams));
+            let qs = decodeURIComponent(querystring.stringify(queryParams as querystring.ParsedUrlQueryInput));
             if (qs) {
                 var createQuery = odataV4Mongodb.createQuery(qs);
             } else {
@@ -157,7 +160,7 @@ const getObjectRecent = async function (req: Request, res: Response) {
                 let body = {};
                 body['@odata.context'] = getODataManager().getODataContextPath(spaceId, key);
                 if (queryParams.$count != 'false') {
-                    body['@odata.count'] = sort_entities.length;
+                    body['@odata.count'] = odataCount;
                 }
                 let entities_OdataProperties = getODataManager().setOdataProperty(sort_entities, spaceId, key);
                 body['value'] = entities_OdataProperties;
@@ -190,7 +193,9 @@ const createObjectData = async function (req: Request, res: Response) {
             res.status(401).send(setErrorMessage(404, collection, key));
         }
         if (userId) {
-            // bodyParams.space = spaceId;
+            if(collection.datasource && collection.datasource.name === "default"){
+                bodyParams.space = spaceId;
+            }
             if (spaceId == 'guest') {
                 delete bodyParams.space;
             }
@@ -239,7 +244,7 @@ const getObjectData = async function (req: Request, res: Response) {
         if (entity) {
             fieldValue = entity[fieldName];
         }
-        let field = collection.fields[fieldName];
+        let field = await collection.getField(fieldName);
         if (field && fieldValue && (field.type === 'lookup' || field.type === 'master_detail')) {
             let lookupCollection = getSteedosSchema().getObject(String(field.reference_to));
             if (field.multiple) {
@@ -283,7 +288,7 @@ const getObjectData = async function (req: Request, res: Response) {
             }
             if (userId) {
                 getODataManager().removeInvalidMethod(queryParams);
-                let qs = decodeURIComponent(querystring.stringify(queryParams));
+                let qs = decodeURIComponent(querystring.stringify(queryParams as querystring.ParsedUrlQueryInput));
                 if (qs) {
                     var createQuery = odataV4Mongodb.createQuery(qs);
                 } else {
@@ -337,7 +342,7 @@ const updateObjectData = async function (req: Request, res: Response) {
         let urlParams = req.params;
         let bodyParams = req.body;
         let key = urlParams.objectName;
-        // let spaceId = userSession.spaceId;
+        let spaceId = userSession.spaceId;
         let recordId = urlParams._id;
         let setErrorMessage = getODataManager().setErrorMessage;
 
@@ -360,8 +365,14 @@ const updateObjectData = async function (req: Request, res: Response) {
                 })
                 let entityIsUpdated = await collection.update(recordId, data, userSession);
                 if (entityIsUpdated) {
+                    let body = {}
+                    let entities= []
+                    entities.push(entityIsUpdated);
+                    body['@odata.context'] = getODataManager().getODataContextPath(spaceId, key) + '/$entity';
+                    let entity_OdataProperties = getODataManager().setOdataProperty(entities, spaceId, key);
+                    body['value'] = entity_OdataProperties;
                     getODataManager().setHeaders(res);
-                    res.send({});
+                    res.send(body);
                 } else {
                     res.status(404).send(setErrorMessage(404, collection, key));
                 }

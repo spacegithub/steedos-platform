@@ -1,263 +1,150 @@
 name: object_workflows
 label: Object Synchronization Rule
-icon: apps
+icon: link
+hidden: true
+version: 2
 fields:
   name:
     label: Name
     type: text
     required: true
+    searchable: true
+    filterable: true
   object_name:
     label: Object
     type: master_detail
+    write_requires_master_read: true
     required: true
-    optionsFunction: !<tag:yaml.org,2002:js/function> |-
-      function () {
-              var _options;
-
-              _options = [];
-
-              _.forEach(Creator.objectsByName, function (o, k) {
-                if (o.enable_workflow) {
-                  return _options.push({
-                    label: o.label,
-                    value: k,
-                    icon: o.icon
-                  });
-                }
-                
-              });
-
-              return _options;
-            }
+    reference_to: objects
+    reference_to_field: name
+    filters: [["enable_workflow", "=", true]]
+    filterable: true
   flow_id:
     label: Workflow
     type: lookup
     required: true
     reference_to: flows
+    filterable: true
   field_map:
     label: Field Mappings（from Object to Workflow）
-    type: grid
+    type: table
     is_wide: true
     depend_on:
       - object_name
       - flow_id
+    amis:
+      showIndex: true
+      columns: ["workflow_field", "object_field"]
+      enableDialog: false
   field_map.$.workflow_field:
     label: Field of Workflow
     type: lookup
+    reference_to: object_fields
+    reference_to_field: name
+    enable_enhanced_lookup: false
     depend_on:
       - flow_id
-    optionsFunction: !<tag:yaml.org,2002:js/function> |-
-      function (values) {
-              var fields, flowId, form_fields, form_id, instance_fields, options, res_flow, res_form;
-              instance_fields = [];
-              form_fields = [];
-
-              if (values != null ? values.flow_id : void 0) {
-                flowId = _.isObject(values.flow_id) ? values.flow_id._id : values.flow_id;
-
-                if (!window.ObjectWorkflowsDataCache) {
-                  window.ObjectWorkflowsDataCache = {};
-                }
-
-                if (!window.ObjectWorkflowsDataCache.flowsMap) {
-                  window.ObjectWorkflowsDataCache.flowsMap = {};
-                }
-
-                var flowCache = window.ObjectWorkflowsDataCache.flowsMap[flowId];
-
-                if (!flowCache || flowCache._EXPIREDATE < new Date().getTime()) {
-                  var flow = Creator.odata.get("flows", flowId, "form");
-
-                  if (flow && flow.form) {
-                    var form = Creator.odata.get("forms", flow.form, "current");
-
-                    if (form && form.current) {
-                      window.ObjectWorkflowsDataCache.flowsMap[flowId] = Object.assign({
-                        _EXPIREDATE: new Date().getTime() + 60 * 1000
-                      }, form);
-                    }
-                  }
-                }
-
-                var res_form = window.ObjectWorkflowsDataCache.flowsMap[flowId];
-
-                if (res_form != null ? res_form.current : void 0) {
-                  fields = (res_form != null ? res_form.current.fields : void 0) || [];
-                  fields.forEach(function (f) {
-                    if (f.type === 'section') {
-                      if (f.fields) {
-                        return f.fields.forEach(function (ff) {
-                          return form_fields.push({
-                            'label': ff.name || ff.code,
-                            'value': ff.code
-                          });
-                        });
-                      }
-                    } else if (f.type === 'table') {
-                      if (f.fields) {
-                        return f.fields.forEach(function (ff) {
-                          return form_fields.push({
-                            'label': (f.name || f.code) + '=>' + (ff.name || ff.code),
-                            'value': f.code + '.' + ff.code
-                          });
-                        });
-                      }
-                    } else {
-                      return form_fields.push({
-                        'label': f.name || f.code,
-                        'value': f.code
-                      });
-                    }
-                  });
-                }
-              }
-
-              options = _.union(instance_fields, form_fields);
-              return options;
-            }
+    amis: 
+      "autoComplete": 
+        "method": "get"
+        "cache": 120000
+        "url": "${context.rootUrl}/api/object_workflows/workflow_field/options?flow_id=${flow_id}&term=${term}"
+        "headers": 
+          "Authorization": "Bearer ${context.tenantId},${context.authToken}" 
+        "sendOn": "!!this.flow_id"
+      "source": 
+        "method": "get"
+        "cache": 120000
+        "url": "${context.rootUrl}/api/object_workflows/workflow_field/options?flow_id=${flow_id}&term=${term}"
+        "headers": 
+          "Authorization": "Bearer ${context.tenantId},${context.authToken}" 
+        "sendOn": "!!this.flow_id"
   field_map.$.object_field:
     label: Field of Object
     type: lookup
     depend_on:
       - object_name
+    reference_to: object_fields
+    reference_to_field: name
+    enable_enhanced_lookup: false
     defaultIcon: service_contract
-    optionsFunction: !<tag:yaml.org,2002:js/function> |-
-      function (values) {
-              return Creator.getObjectLookupFieldOptions(values != null ? values.object_name : void 0, true, false, true);
-            }
+    amis: 
+      "autoComplete": 
+        "method": "get"
+        "cache": 120000
+        "url": "${context.rootUrl}/service/api/amis-metadata-objects/objects/${object_name}/fields/options?include_deep=true&include_hide=true&include_related=true&term=${term}"
+        "headers": 
+          "Authorization": "Bearer ${context.tenantId},${context.authToken}" 
+        "sendOn": "!!this.object_name"
+        "adaptor": "let data = payload.data;\n// 移除 附件、任务、备忘、日程、审批单、历史步骤、批准步骤、审计日志\nconst options = [];\nfor (const item of data.options) {\n  if (item.value.startsWith('cms_files.') || item.value.startsWith('tasks.') || item.value.startsWith('notes.') || item.value.startsWith('events.') || item.value.startsWith('instances.') || item.value.startsWith('approvals.') || item.value.startsWith('process_instance_history.') || item.value.startsWith('audit_records.')) {\n    continue;\n  }\n  options.push(item);\n}\ndata.options = options;\npayload.data = data;\nreturn payload;\n"
+      "source": 
+        "method": "get"
+        "cache": 120000
+        "url": "${context.rootUrl}/service/api/amis-metadata-objects/objects/${object_name}/fields/options?include_deep=true&include_hide=true&include_related=true&term=${term}"
+        "headers": 
+          "Authorization": "Bearer ${context.tenantId},${context.authToken}" 
+        "sendOn": "!!this.object_name"
+        "adaptor": "let data = payload.data;\n// 移除 附件、任务、备忘、日程、审批单、历史步骤、批准步骤、审计日志\nconst options = [];\nfor (const item of data.options) {\n  if (item.value.startsWith('cms_files.') || item.value.startsWith('tasks.') || item.value.startsWith('notes.') || item.value.startsWith('events.') || item.value.startsWith('instances.') || item.value.startsWith('approvals.') || item.value.startsWith('process_instance_history.') || item.value.startsWith('audit_records.')) {\n    continue;\n  }\n  options.push(item);\n}\ndata.options = options;\npayload.data = data;\nreturn payload;\n"
   field_map_back:
     label: Field Mappings（from Workflow to Object）
-    type: grid
+    type: table
     is_wide: true
     depend_on:
       - object_name
       - flow_id
+    amis:
+      showIndex: true
+      columns: ["object_field","workflow_field"]
+      enableDialog: false
   field_map_back.$.object_field:
     label: Field of Object
     type: lookup
     depend_on:
       - object_name
+    reference_to: object_fields
+    reference_to_field: name
+    enable_enhanced_lookup: false
     defaultIcon: service_contract
-    optionsFunction: !<tag:yaml.org,2002:js/function> |-
-      function (values) {
-              return Creator.getObjectLookupFieldOptions(values != null ? values.object_name : void 0, true, false, true);
-            }
+    amis: 
+      "autoComplete": 
+        "method": "get"
+        "cache": 120000
+        "url": "${context.rootUrl}/service/api/amis-metadata-objects/objects/${object_name}/fields/options?include_deep=true&include_hide=true&include_related=true&term=${term}"
+        "headers": 
+          "Authorization": "Bearer ${context.tenantId},${context.authToken}" 
+        "sendOn": "!!this.object_name"
+        "adaptor": "let data = payload.data;\n// 移除 附件、任务、备忘、日程、审批单、历史步骤、批准步骤、审计日志\nconst options = [];\nfor (const item of data.options) {\n  if (item.value.startsWith('cms_files.') || item.value.startsWith('tasks.') || item.value.startsWith('notes.') || item.value.startsWith('events.') || item.value.startsWith('instances.') || item.value.startsWith('approvals.') || item.value.startsWith('process_instance_history.') || item.value.startsWith('audit_records.')) {\n    continue;\n  }\n  options.push(item);\n}\ndata.options = options;\npayload.data = data;\nreturn payload;\n"
+      "source": 
+        "method": "get"
+        "cache": 120000
+        "url": "${context.rootUrl}/service/api/amis-metadata-objects/objects/${object_name}/fields/options?include_deep=true&include_hide=true&include_related=true&term=${term}"
+        "headers": 
+          "Authorization": "Bearer ${context.tenantId},${context.authToken}" 
+        "sendOn": "!!this.object_name"
+        "adaptor": "let data = payload.data;\n// 移除 附件、任务、备忘、日程、审批单、历史步骤、批准步骤、审计日志\nconst options = [];\nfor (const item of data.options) {\n  if (item.value.startsWith('cms_files.') || item.value.startsWith('tasks.') || item.value.startsWith('notes.') || item.value.startsWith('events.') || item.value.startsWith('instances.') || item.value.startsWith('approvals.') || item.value.startsWith('process_instance_history.') || item.value.startsWith('audit_records.')) {\n    continue;\n  }\n  options.push(item);\n}\ndata.options = options;\npayload.data = data;\nreturn payload;\n"
   field_map_back.$.workflow_field:
     label: Field of Workflow
     type: lookup
+    reference_to: object_fields
+    reference_to_field: name
+    enable_enhanced_lookup: false
     depend_on:
       - flow_id
-    optionsFunction: !<tag:yaml.org,2002:js/function> |-
-      function (values) {
-              var fields, flowId, form_fields, form_id, instance_fields, options, res_flow, res_form;
-              instance_fields = [{
-                value: "instance.name",
-                label: t("object_workflows_field_field_map_$_workflow_field_instance_name")
-              }, {
-                value: "instance.submitter_name",
-                label: t("object_workflows_field_field_map_$_workflow_field_submitter_name")
-              }, {
-                value: "instance.applicant_name",
-                label: t("object_workflows_field_field_map_$_workflow_field_applicant_name")
-              }, {
-                value: "instance.applicant_company",
-                label: t("object_workflows_field_field_map_$_workflow_field_applicant_company")
-              }, {
-                value: "instance.applicant_organization",
-                label: t("object_workflows_field_field_map_$_workflow_field_applicant_organization")
-              }, {
-                value: "instance.applicant_organization_name",
-                label: t("object_workflows_field_field_map_$_workflow_field_applicant_organization_name")
-              }, {
-                value: "instance.applicant_organization_fullname",
-                label: t("object_workflows_field_field_map_$_workflow_field_applicant_organization_fullname")
-              }, {
-                value: "instance.state",
-                label: t("object_workflows_field_field_map_$_workflow_field_state")
-              }, {
-                value: "instance.current_step_name",
-                label: t("object_workflows_field_field_map_$_workflow_field_current_step_name")
-              }, {
-                value: "instance.flow_name",
-                label: t("object_workflows_field_field_map_$_workflow_field_flow_name")
-              }, {
-                value: "instance.category_name",
-                label: t("object_workflows_field_field_map_$_workflow_field_category_name")
-              }, {
-                value: "instance.submit_date",
-                label: t("object_workflows_field_field_map_$_workflow_field_submit_date")
-              }, {
-                value: "instance.finish_date",
-                label: t("object_workflows_field_field_map_$_workflow_field_finish_date")
-              }, {
-                value: "instance.final_decision",
-                label: t("object_workflows_field_field_map_$_workflow_field_final_decision")
-              }];
-              form_fields = [];
-
-              if (values != null ? values.flow_id : void 0) {
-                flowId = _.isObject(values.flow_id) ? values.flow_id._id : values.flow_id;
-
-                if (!window.ObjectWorkflowsDataCache) {
-                  window.ObjectWorkflowsDataCache = {};
-                }
-
-                if (!window.ObjectWorkflowsDataCache.flowsMap) {
-                  window.ObjectWorkflowsDataCache.flowsMap = {};
-                }
-
-                var flowCache = window.ObjectWorkflowsDataCache.flowsMap[flowId];
-
-                if (!flowCache || flowCache._EXPIREDATE < new Date().getTime()) {
-                  var flow = Creator.odata.get("flows", flowId, "form");
-
-                  if (flow && flow.form) {
-                    var form = Creator.odata.get("forms", flow.form, "current");
-
-                    if (form && form.current) {
-                      window.ObjectWorkflowsDataCache.flowsMap[flowId] = Object.assign({
-                        _EXPIREDATE: new Date().getTime() + 60 * 1000
-                      }, form);
-                    }
-                  }
-                }
-
-                var res_form = window.ObjectWorkflowsDataCache.flowsMap[flowId];
-
-                if (res_form != null ? res_form.current : void 0) {
-                  fields = (res_form != null ? res_form.current.fields : void 0) || [];
-                  fields.forEach(function (f) {
-                    if (f.type === 'section') {
-                      if (f.fields) {
-                        return f.fields.forEach(function (ff) {
-                          return form_fields.push({
-                            'label': ff.name || ff.code,
-                            'value': ff.code
-                          });
-                        });
-                      }
-                    } else if (f.type === 'table') {
-                      if (f.fields) {
-                        return f.fields.forEach(function (ff) {
-                          return form_fields.push({
-                            'label': (f.name || f.code) + '=>' + (ff.name || ff.code),
-                            'value': f.code + '.' + ff.code
-                          });
-                        });
-                      }
-                    } else {
-                      return form_fields.push({
-                        'label': f.name || f.code,
-                        'value': f.code
-                      });
-                    }
-                  });
-                }
-              }
-
-              options = _.union(instance_fields, form_fields);
-              return options;
-            }
+    amis: 
+      "autoComplete": 
+        "method": "get"
+        "cache": 120000
+        "url": "${context.rootUrl}/api/object_workflows/workflow_field/options?flow_id=${flow_id}&term=${term}&instance_fields=true"
+        "headers": 
+          "Authorization": "Bearer ${context.tenantId},${context.authToken}" 
+        "sendOn": "!!this.flow_id"
+      "source": 
+        "method": "get"
+        "cache": 120000
+        "url": "${context.rootUrl}/api/object_workflows/workflow_field/options?flow_id=${flow_id}&term=${term}&instance_fields=true"
+        "headers": 
+          "Authorization": "Bearer ${context.tenantId},${context.authToken}" 
+        "sendOn": "!!this.flow_id"
   field_map_script:
     label: Synchronization Script（from Object to Workflow）
     type: textarea
@@ -271,14 +158,68 @@ fields:
   sync_attachment:
     label: Synchronization Mode of Attachment
     type: select
-    options: 
+    options:
       - label: No Synchronization
-        value: 'null'
+        value: "null"
       - label: Synchronize the Latest Version
         value: lastest
       - label: Synchronize All Versions
         value: all
     required: true
+  sync_type:
+    label: Synchronization Mode
+    type: select
+    options:
+      - label: Every Step
+        value: "every_step"
+      - label: Final Step
+        value: "final_step"
+    defaultValue: every_step
+    required: true
+  sync_direction:
+    label: Synchronization Direction
+    type: select
+    options:
+      - label: Both
+        value: "both"
+      - label: Instance To Object
+        value: "ins_to_obj"
+      - label: Object To Instance
+        value: "obj_to_ins"
+    defaultValue: both
+    required: true
+  lock_record_after_approval:
+    label: Lock record after approval
+    type: boolean
+    defaultValue: false
+    required: false
+  required_details:
+    label: Required Details
+    inlineHelpText: Is There A Record Of The Sub Check Table When Initiating The Approval.
+    type: select
+    multiple: true
+    is_wide: true
+    depend_on:
+      - object_name
+    amis:
+      disabledOn: "${is_system == true}"
+      "source": 
+        "method": "get"
+        "url": "${context.rootUrl}/service/api/amis-metadata-objects/objects/${object_name}/relatedLists/options"
+        "headers": 
+          "Authorization": "Bearer ${context.tenantId},${context.authToken}"
+        "adaptor": "let data = payload.data;\n// 移除 附件、任务、备忘、日程、审批单、历史步骤、批准步骤、审计日志\nconst needToRemove = ['cms_files.parent', 'tasks.related_to', 'notes.related_to', 'events.related_to', 'instances.record_ids', 'approvals.related_to', 'process_instance_history.target_object', 'audit_records.related_to'];\nconst options = [];\nfor (const item of data.options) {\n  if (!needToRemove.includes(item.value)) {\n    options.push(item);\n  }\n}\ndata.options = options;\npayload.data = data;\nreturn payload;\n"
+        "sendOn": "this.object_name"
+        "requestAdaptor": ""
+      "autoComplete": 
+        "method": "get"
+        "url": "${context.rootUrl}/service/api/amis-metadata-objects/objects/${object_name}/relatedLists/options"
+        "headers": 
+          "Authorization": "Bearer ${context.tenantId},${context.authToken}"
+        "adaptor": "let data = payload.data;\n// 移除 附件、任务、备忘、日程、审批单、历史步骤、批准步骤、审计日志\nconst needToRemove = ['cms_files.parent', 'tasks.related_to', 'notes.related_to', 'events.related_to', 'instances.record_ids', 'approvals.related_to', 'process_instance_history.target_object', 'audit_records.related_to'];\nconst options = [];\nfor (const item of data.options) {\n  if (!needToRemove.includes(item.value)) {\n    options.push(item);\n  }\n}\ndata.options = options;\npayload.data = data;\nreturn payload;\n"
+        "sendOn": "this.object_name"
+        "requestAdaptor": ""
+    
 list_views:
   default:
     columns:
@@ -286,8 +227,25 @@ list_views:
       - object_name
       - flow_id
   all:
+    columns:
+      - name
+      - object_name
+      - flow_id
     label: All Rules
     filter_scope: space
+  customize:
+    columns:
+      - name
+      - object_name
+      - flow_id
+    label: 自定义
+    filters:
+      - ["is_system","<>",true]
+    filter_scope: space
+actions:
+  forceSync:
+    label: sync history approvals
+    on: record
 permission_set:
   user:
     allowCreate: false

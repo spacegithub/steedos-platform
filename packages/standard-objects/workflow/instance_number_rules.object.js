@@ -1,6 +1,6 @@
 if (!db.instance_number_rules) {
   const core = require('@steedos/core');
-  db.instance_number_rules = core.newCollection('instance_number_rules');
+  db.instance_number_rules = Creator.getCollection('instance_number_rules') || core.newCollection('instance_number_rules');
 }
 
 if (Meteor.isServer) {
@@ -88,11 +88,3 @@ new Tabular.Table({
   autoWidth: false
 });
 
-if (Meteor.isServer) {
-  db.instance_number_rules._ensureIndex({
-    "space": 1,
-    "name": 1
-  }, {
-      background: true
-    });
-}

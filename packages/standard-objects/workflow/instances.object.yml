@@ -2,6 +2,8 @@ name: instances
 icon: task
 label: Request
 enable_search: true
+enable_dataloader: false
+hidden: false
 fields:
   name:
     label: Name
@@ -13,6 +15,19 @@ fields:
     searchable: true
     is_wide: true
     name: name
+    filterable: true
+    amis:
+      className:
+        'color-priority-danger': "${extras && extras.priority == '特急'}"
+        'color-priority-warning': "${extras && extras.priority == '紧急'}"
+        'color-priority-muted': "${extras && extras.priority == '办文'}" 
+  submitter_name:
+    type: text
+    label: Submitter's Name
+    hidden: false
+    name: submitter_name
+    filterable: true
+    searchable: true
   flow:
     label: Workflow
     type: lookup
@@ -20,6 +35,10 @@ fields:
     readonly: true
     name: flow
     filterable: true
+    amis:
+      type: 'steedos-select-flow'
+      mode: "tree-select"
+      allData: "\\${isLookup === true}"
   flow_version:
     label: Workflow Version
     type: text
@@ -31,7 +50,7 @@ fields:
     reference_to: forms
     readonly: true
     name: form
-    filterable: true
+    filterable: false
   form_version:
     label: Form Version
     type: text
@@ -39,26 +58,30 @@ fields:
     name: form_version
   submitter:
     label: Submitter
-    type: master_detail
+    type: lookup
     reference_to: users
     readonly: true
     name: submitter
-    filterable: true
-  submitter_name:
+    filterable: false
+    write_requires_master_read: true
+  applicant_organization_name:
     type: text
-    label: Submitter's Name
-    hidden: true
-    name: submitter_name
+    label: Applicant Department's Name
+    hidden: false
+    name: applicant_organization_name
+    filterable: true
   submit_date:
     type: datetime
     label: Submit Date
     name: submit_date
+    sortable: true
+    filterable: true
   applicant:
     type: lookup
     label: Applicant
     reference_to: users
     name: applicant
-    filterable: true
+    filterable: false
   applicant_name:
     type: text
     label: Applicant's Name
@@ -69,12 +92,7 @@ fields:
     label: Applicant Department
     reference_to: organizations
     name: applicant_organization
-    filterable: true
-  applicant_organization_name:
-    type: text
-    label: Applicant Department's Name
-    hidden: true
-    name: applicant_organization_name
+    filterable: false
   applicant_organization_fullname:
     type: text
     label: Applicant Department's Fullname
@@ -89,7 +107,7 @@ fields:
     blackbox: true
     omit: true
     label: Field Values
-    hidden: true
+    hidden: false
     name: values
   inbox_users:
     type: lookup
@@ -97,14 +115,14 @@ fields:
     reference_to: users
     label: Inbox Users
     name: inbox_users
-    filterable: true
+    filterable: false
   outbox_users:
     type: lookup
     multiple: true
     reference_to: users
     label: Outbox Users
     name: outbox_users
-    filterable: true
+    filterable: false
   traces:
     type: '[Object]'
     blackbox: true
@@ -122,7 +140,7 @@ fields:
   flow_name:
     type: text
     label: Workflow Name
-    hidden: true
+    hidden: false
     name: flow_name
   category_name:
     type: text
@@ -135,7 +153,7 @@ fields:
     reference_to: categories
     hidden: true
     name: category
-    filterable: true
+    filterable: false
   state:
     label: Processing State
     type: select
@@ -149,23 +167,24 @@ fields:
     readonly: true
     name: state
     filterable: true
-  is_recorded:
-    type: boolean
-    label: Recorded
-    name: is_recorded
+  # is_recorded:
+  #   type: boolean
+  #   label: Recorded
+  #   name: is_recorded
   is_archived:
     type: boolean
     label: Archived
-    hidden: true
+    hidden: false
     name: is_archived
+    filterable: true
   is_deleted:
     type: boolean
     label: Deleted
     hidden: true
-  is_recorded_creator:
-    type: boolean
-    label: Synced
-    name: is_recorded_creator
+  # is_recorded_creator:
+  #   type: boolean
+  #   label: Synced
+  #   name: is_recorded_creator
   related_instances:
     type: lookup
     multiple: true
@@ -173,25 +192,29 @@ fields:
     label: Related Instances
     is_wide: true
     name: related_instances
-    filterable: true
+    filterable: false
   record_ids:
     label: Record IDs
-    type: grid
-    omit: true
-    hidden: true
+    type: lookup
+    reference_to: []
+    visible_on: "{{global.mode ==='read' ? true : false}}"
     name: record_ids
-  record_ids.$.o:
-    type: text
-    hidden: true
-    name: record_ids.$.o
-  record_ids.$.ids:
-    type: '[text]'
-    hidden: true
-    name: record_ids.$.ids
+  # record_ids.$.o:
+  #   type: text
+  #   hidden: true
+  #   name: record_ids.$.o
+  # record_ids.$.ids:
+  #   type: '[text]'
+  #   hidden: true
+  #   name: record_ids.$.ids
   # company_id:
   #   required: false
   #   omit: false
   #   hidden: false
+  current_step_name:
+    label: Current Step Name
+    type: text
+    hidden: false
   current_step_auto_submit:
     label: Auto Submit if Time Out
     type: boolean
@@ -203,30 +226,22 @@ fields:
     type: lookup
     reference_to: company
     name: applicant_company
-list_views:
-  all:
-    label: All
-    filter_scope: space
-    columns:
-      - name
-      - applicant
-      - applicant_organization
-      - modified
-      - state
-  inbox:
-    label: Inbox
-    filter_scope: space
-    filters:
-      - - inbox_users
-        - =
-        - '{userId}'
-  outbox:
-    label: Outbox
-    filter_scope: space
-    filters:
-      - - outbox_users
-        - =
-        - '{userId}'
+  forward_from_instance:
+    type: text
+    hidden: true
+  cc_users:
+    type: "[text]"
+    hidden: true
+  extras:
+    type: Object
+    blackbox: true
+    omit: true
+    label: Extras
+    hidden: true
+  cc_count:
+    type: number
+    label: CC Count
+    scale: 0
 permission_set:
   user:
     allowCreate: false
@@ -235,6 +250,7 @@ permission_set:
     allowRead: true
     modifyAllRecords: false
     viewAllRecords: true
+    allowCreateListViews: false
   admin:
     allowCreate: false
     allowDelete: false
@@ -242,6 +258,7 @@ permission_set:
     allowRead: true
     modifyAllRecords: false
     viewAllRecords: true
+    allowCreateListViews: false
   workflow_admin:
     allowCreate: false
     allowDelete: false
@@ -251,6 +268,7 @@ permission_set:
     viewAllRecords: false
     modifyCompanyRecords: false
     viewCompanyRecords: true
+    allowCreateListViews: false
     disabled_list_views:
       - inbox
       - outbox
@@ -265,19 +283,13 @@ actions:
     'on': record
     todo: !<tag:yaml.org,2002:js/function> |-
       function (object_name, record_id, fields) {
-              var uobj, workflowUrl;
+              var uobj;
               uobj = {};
               uobj["box"] = 'monitor';
               uobj["print_is_show_traces"] = '1';
               uobj["print_is_show_attachments"] = '1';
               uobj["X-User-Id"] = Meteor.userId();
               uobj["X-Auth-Token"] = Accounts._storedLoginToken();
-              var settings = Meteor.settings["public"].webservices;
-              workflowUrl = settings && settings.workflow && settings.workflow.url;
-              if(workflowUrl){
-                return Steedos.openWindow(workflowUrl + "workflow/space/" + Session.get("spaceId") + "/print/" + record_id + "?" + $.param(uobj), "", 'width=900,height=750,scrollbars=yes,EnableViewPortScale=yes,toolbarposition=top,transitionstyle=fliphorizontal,menubar=yes,closebuttoncaption=  x  ');
-              }
-              else{
-                return toastr && toastr.error && toastr.error("Settings中缺失参数'public.webservices.workflow.url',请联系系统管理员");
-              }
+              var uobjToString = window.$.param(uobj);
+              return Steedos.openWindow(Steedos.absoluteUrl() + "workflow/space/" + Session.get("spaceId") + "/print/" + record_id + "?" + uobjToString, "", 'width=900,height=750,scrollbars=yes,EnableViewPortScale=yes,toolbarposition=top,transitionstyle=fliphorizontal,menubar=yes,closebuttoncaption=  x  ');
             }

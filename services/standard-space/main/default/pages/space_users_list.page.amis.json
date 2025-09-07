@@ -1,0 +1,169 @@
+{
+    "type": "service",
+    "body": [
+        {
+            "type": "service",
+            "messages": {},
+            "className": "h-full",
+            "body": [
+                {
+                    "type": "wrapper",
+                    "size": "none",
+                    "className": "flex flex-1 overflow-hidden h-full",
+                    "body": [
+                        {
+                            "type": "wrapper",
+                            "size": "none",
+                            "className": "flex-shrink-0 min-w-[200px] overflow-y-auto border-r border-gray-200 lg:order-first lg:flex lg:flex-col hidden",
+                            "body": [
+                                {
+                                    "type": "input-tree",
+                                    "id": "u:7fd77b7915b0",
+                                    "className": "",
+                                    "source": {
+                                        "method": "post",
+                                        "url": "${context.rootUrl}/graphql",
+                                        "headers": {
+                                            "Authorization": "Bearer ${context.tenantId},${context.authToken}"
+                                        },
+                                        "adaptor": "const records = payload.data.options;\nconst treeRecords = [];\nconst getChildren = (currentRecord, records, childrenIds) => {\n        if (currentRecord.children && typeof currentRecord.children[0] === \"object\") {\n                // 考虑api配置了cache缓存的话，不会请求接口但是会重新进这个接收适配器脚本且payload.data.options返回的会是上一次计算结果，这里直接返回计算过的children\n                return currentRecord.children;\n        }\n        if (!childrenIds) {\n                return;\n        }\n        const children = _.filter(records, (record) => {\n                return _.includes(childrenIds, record.value)\n        });\n        _.each(children, (item) => {\n                if (item.children) {\n                        item.children = getChildren(item, records, item.children)\n                }\n        })\n        return children;\n}\n\nconst getRoot = (records) => {\n        for (var i = 0; i < records.length; i++) {\n                records[i].noParent = 0;\n                if (!!records[i].parent) {\n                        biaozhi = 1\n                        for (var j = 0; j < records.length; j++) {\n                                if (records[i].parent == records[j].value)\n                                        biaozhi = 0;\n                        }\n                        if (biaozhi == 1) records[i].noParent = 1;\n                } else records[i].noParent = 1;\n        }\n}\ngetRoot(records);\n\n_.each(records, (record) => {\n        if (record.noParent == 1) {\n                treeRecords.push(Object.assign({}, record, { children: getChildren(record, records, record.children) }));\n        }\n});\n\npayload.data.options = treeRecords;\nreturn payload;",
+                                        "requestAdaptor": "\n    ",
+                                        "data": {
+                                            "query": "{options:organizations(sort:\"sort_no desc\"){value:_id label:name,parent,children,is_hidden:hidden}}"
+                                        },
+                                        "messages": {},
+                                        "cache": 300000
+                                    },
+                                    "onEvent": {
+                                        "change": {
+                                            "actions": [
+                                                {
+                                                    "actionType": "setValue",
+                                                    "componentId": "u:f6a209c8cf61",
+                                                    "args": {
+                                                        "value": {
+                                                            "additionalFilters": [
+                                                                "organizations_parents",
+                                                                "in",
+                                                                "${event.data.value.value | asArray}"
+                                                            ],
+                                                            "organizations": "${event.data.value.value}"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "menuTpl": "<div class='${is_hidden?'text-gray-300':''} font-bold'>${label}</div>",
+                                    "name": "organizations",
+                                    "multiple": false,
+                                    "joinValues": false,
+                                    "clearValueOnHidden": false,
+                                    "fieldName": "organizations",
+                                    "hideRoot": true,
+                                    "initiallyOpen": false,
+                                    "extractValue": true,
+                                    "onlyChildren": true,
+                                    "treeContainerClassName": "no-border",
+                                    "showIcon": false,
+                                    "enableNodePath": false,
+                                    "autoCheckChildren": false,
+                                    "searchable": true,
+                                    "searchConfig": {
+                                        "sticky": true,
+                                        "placeholder": "请搜索部门"
+                                    },
+                                    "unfoldedLevel": 2,
+                                    "originPosition": "left-top",
+                                    "virtualThreshold": 10000,
+                                    "style": {
+                                        "max-height": "100%",
+                                        "background-color": "white"
+                                    }
+                                }
+                            ],
+                            "id": "u:fd659f5c3657",
+                            "visibleOn": "${isVisible}"
+                        },
+                        {
+                            "type": "wrapper",
+                            "size": "none",
+                            "className": "flex-1 overflow-y-auto focus:outline-none lg:order-last w-96",
+                            "body": [
+                                {
+                                    "type": "steedos-object-listview",
+                                    "objectApiName": "space_users",
+                                    "id": "u:d29cef0d1007",
+                                    "columnsTogglable": false,
+                                    "showHeader": true,
+                                    "showDisplayAs": true,
+                                    "headerToolbarItems": [
+                                        {
+                                            "type": "button",
+                                            "label": "",
+                                            "align": "right",
+                                            "icon": "fa fa-bars",
+                                            "className": "bg-white p-2 rounded border-gray-300 text-gray-500",
+                                            "hiddenOn": "${window:innerWidth < 768}",
+                                            "onEvent": {
+                                                "click": {
+                                                    "actions": [
+                                                        {
+                                                            "actionType": "setValue",
+                                                            "componentId": "u:f6a209c8cf61",
+                                                            "args": {
+                                                                "value": {
+                                                                    "isVisible": "${!isVisible}"
+                                                                }
+                                                            }
+                                                        }
+                                                    ]
+                                                }
+                                            },
+                                            "id": "u:6f237cc36419"
+                                        }
+                                    ],
+                                    "className": "bg-gray-100",
+                                    "style": {
+                                        "border": 0,
+                                        "border-radius": 0
+                                    }
+                                }
+                            ],
+                            "id": "u:ca495ec221e7"
+                        }
+                    ],
+                    "id": "u:9526a450d59b",
+                    "style": {
+                        "border-width": "${displayAs == 'split'?'0px':''}",
+                        "box-shadow": "${displayAs == 'split'?'none':''}",
+                        "--tw-shadow-colored": "${displayAs == 'split'?'none':''}",
+                        "--tw-shadow": "${displayAs == 'split'?'none':''}"
+                    }
+                }
+            ],
+            "data": {
+                "isVisible": true
+            },
+            "id": "u:f6a209c8cf61"
+        }
+    ],
+    "regions": [
+        "body"
+    ],
+    "data": {
+        "objectName": "space_users",
+        "context": {}
+    },
+    "name": "page_space_users_list",
+    "bodyClassName": "p-0",
+    "id": "u:b7167e2fcaf0",
+    "asideResizor": false,
+    "pullRefresh": {
+        "disabled": true
+    },
+    "className": "space-users-list h-full",
+    "style": {
+        "padding": "${displayAs == 'grid'?'':'0px'}"
+    }
+}

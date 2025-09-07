@@ -1,0 +1,22 @@
+name: all
+columns:
+  - label
+  - name
+  - column_name
+  - group
+  - type
+  - object
+  - sort_no
+  - modified
+  - readonly
+  - is_system
+  - is_customize
+extra_columns:
+  - reference_to
+filter_scope: space
+label: All
+shared: true
+shared_to: space
+sort:
+  - field_name: sort_no
+    order: asc

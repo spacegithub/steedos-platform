@@ -1,0 +1,8 @@
+name: system
+filter_scope: space
+label: 系统软件包
+scrolling_mode: standard
+shared: true
+show_count: false
+type: grid
+filters: [["static","=", true]]

@@ -1,24 +1,21 @@
 name: process_delegation_rules
-icon: metrics
+icon: rtc_presence
 label: Delegation
+hidden: true
+enable_dataloader: false
+version: 2.0
 fields:
   from:
     type: lookup
     label: Client
     reference_to: users
     index: true
-    omit: true
-    name: from
-    filterable: true
-  from_name:
-    type: text
-    label: Client Name
     readonly: true
-    defaultValue: !<tag:yaml.org,2002:js/function> |-
-      function () {
-              return Meteor.user().name;
-            }
-    name: from_name
+    defaultValue: "{{ global.userId }}"
+    visible_on: "{{global.mode ==='read' ? true : false}}"
+    name: from
+    is_name: true
+    filterable: true
   to:
     type: lookup
     label: Trustee
@@ -26,21 +23,19 @@ fields:
     index: true
     name: to
     filterable: true
-  to_name:
-    type: text
-    label: Trustee Name
-    omit: true
-    name: to_name
+    required: true
   start_time:
     type: datetime
     label: Start Time
     required: true
     name: start_time
+    filterable: true
   end_time:
     type: datetime
     label: End Time
     required: true
     name: end_time
+    filterable: true
   enabled:
     type: boolean
     label: Enabled
@@ -55,7 +50,10 @@ list_views:
       - start_time
       - end_time
       - enabled
-    label: All Delegation
+    label: All Delegations
+    sort:
+      - field_name: start_time
+        order: desc
 permission_set:
   user:
     allowCreate: true

@@ -1,6 +1,8 @@
 name: dashboard
 label: Dashboard
 icon: dashboard_ea
+hidden: true
+version: 2
 fields:
   name:
     label: Name
@@ -12,22 +14,7 @@ fields:
     label: Apps
     type: lookup
     multiple: true
-    optionsFunction: !<tag:yaml.org,2002:js/function> |-
-      function () {
-              var _options;
-
-              _options = [];
-
-              _.forEach(Creator.Apps, function (o, k) {
-                return _options.push({
-                  label: o.name,
-                  value: k,
-                  icon: o.icon_slds
-                });
-              });
-
-              return _options;
-            }
+    reference_to: apps
     filterable: true
   widgets:
     label: Widgets

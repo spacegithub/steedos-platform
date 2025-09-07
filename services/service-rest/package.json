@@ -1,0 +1,24 @@
+{
+    "name": "@steedos/service-rest",
+    "version": "2.7.18-beta.41",
+    "main": "package.service.js",
+    "private": false,
+    "publishConfig": {
+        "access": "public"
+    },
+    "keywords": [
+        "steedos"
+    ],
+    "scripts": {
+        "apidoc": "apidoc -i . -o doc/"
+    },
+    "description": "steedos package",
+    "repository": {},
+    "license": "MIT",
+    "dependencies": {
+        "@steedos/objectql": "2.7.18-beta.41",
+        "@steedos/service-object-mixin": "2.7.18-beta.41",
+        "lodash": "^4.17.21"
+    },
+    "gitHead": "0b781a80560d115e8be3c4e39bc2c0c97cc15ce1"
+}

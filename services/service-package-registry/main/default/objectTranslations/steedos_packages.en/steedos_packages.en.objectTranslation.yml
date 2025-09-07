@@ -1,0 +1,127 @@
+name: steedos_packages
+label: Packages
+description: 
+fields:
+  metadata:
+    label: Metadata
+    help: 
+    description: 
+  metadata.$.label:
+    label: Package Name
+    help: 
+    description: 
+  metadata.$.api_name:
+    label: Api Name
+    help: 
+    description: 
+  metadata.$.type:
+    label: Type
+    help: 
+    options:
+      - label: Custom Button
+        value: CustomAction
+      - label: Custom Application
+        value: CustomApplication
+      - label: Custom Field
+        value: CustomField
+      - label: Custom Listview
+        value: CustomListview
+      - label: Custom Object
+        value: CustomObject
+      - label: Custom Permission
+        value: CustomPermission
+      - label: Custom Permission Set
+        value: CustomPermissionset
+      - label: Custom Profile
+        value: CustomProfile
+      - label: Custom Report
+        value: CustomReport
+      - label: Custom Validation Rule
+        value: CustomValidationRule
+      - label: Layout
+        value: Layout
+      - label: Workflow
+        value: Workflow
+      - label: Flow
+        value: Flow
+      - label: Approval Process
+        value: ApprovalProcess
+      - label: Role
+        value: Role
+      - label: Flow Role
+        value: FlowRole
+      - label: Query
+        value: Query
+      - label: Chart
+        value: Chart
+      - label: Page
+        value: Page
+      - label: Tab
+        value: Tab
+    description: 
+  label:
+    label: Label
+    help: 
+    description: 
+  name:
+    label: npm module
+    help: 
+    description: 
+  service_name:
+    label: Service name
+    help: 
+    description: 
+  instance_id:
+    label: Instance id
+    help: 
+    description: 
+  node_id:
+    label: Node id
+    help: 
+    description: 
+  version:
+    label: Version
+    help: 
+    description: 
+  description:
+    label: Description
+    help: 
+    description: 
+  status:
+    label: Status
+    help: 
+    options:
+      - label: Enabled
+        value: enable
+        color: 3df53d
+      - label: Starting
+        value: starting
+        color: ffff00
+      - label: Disabled
+        value: disable
+        color: dcd0d0
+    description: 
+listviews:
+  all:
+    label: All Packages
+  custom:
+    label: Custom Packages
+  system:
+    label: System Packages
+actions:
+  disable:
+    label: Disable
+  enable:
+    label: Enable
+  x x x s:
+    label: Install Purchased Packages
+  installPackageFromUrl:
+    label: Install Package From Url
+  reload:
+    label: Reload
+  show_packages_store:
+    label: Appstore
+  uninstall:
+    label: Uninstall
+  upgradePackage:
+    label: Upgrade Package

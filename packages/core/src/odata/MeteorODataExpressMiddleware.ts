@@ -3,10 +3,11 @@ import { getCreator } from '../index';
 import { getODataManager } from './server';
 
 import querystring = require('querystring');
-import odataV4Mongodb = require('odata-v4-mongodb');
+import odataV4Mongodb = require('@steedos/odata-v4-mongodb');
 import _ = require('underscore');
-import { Response } from 'express';
+import { Response } from 'express-serve-static-core';
 import * as core from "express-serve-static-core";
+import { getObjectConfig } from '@steedos/metadata-registrar'
 interface Request extends core.Request {
     user: any;
 }
@@ -28,7 +29,7 @@ const getObjectList = async function (req: Request, res: Response) {
         }
 
         getODataManager().removeInvalidMethod(queryParams);
-        let qs = decodeURIComponent(querystring.stringify(queryParams));
+        let qs = decodeURIComponent(querystring.stringify(queryParams as querystring.ParsedUrlQueryInput));
         if (qs) {
             var createQuery = odataV4Mongodb.createQuery(qs);
         } else {
@@ -42,7 +43,7 @@ const getObjectList = async function (req: Request, res: Response) {
         let permissions = await collection.getUserObjectPermission(userSession);
         if (permissions.viewAllRecords || (permissions.viewCompanyRecords) || (permissions.allowRead && userId)) {
             let entities = [];
-            let filters = queryParams.$filter || '';
+            let filters = queryParams.$filter as string || '';
             let fields = [];
 
             if (queryParams.$select) {
@@ -59,16 +60,18 @@ const getObjectList = async function (req: Request, res: Response) {
                 if (queryParams.$orderby) {
                     query['sort'] = queryParams.$orderby;
                 }
-                entities = await collection.find(query, userSession);
+                let externalPipeline = await getODataManager().makeAggregateLookup(createQuery, key, spaceId, userSession);
+                entities = await collection.aggregate(query, externalPipeline, userSession);
             }
             if (entities) {
-                entities = await getODataManager().dealWithExpand(createQuery, entities, key, spaceId, userSession);
+                entities = await getODataManager().dealWithAggregateLookup(createQuery, entities, key, spaceId, userSession);
                 let body = {};
                 body['@odata.context'] = getCreator().getODataContextPath(spaceId, key);
                 if (queryParams.$count != 'false') {
                     body['@odata.count'] = await collection.count({ filters: filters, fields: ['_id'] }, userSession);
                 }
                 let entities_OdataProperties = getCreator().setOdataProperty(entities, spaceId, key);
+
                 body['value'] = entities_OdataProperties;
                 getODataManager().setHeaders(res);
                 res.send(body);
@@ -104,12 +107,13 @@ const getObjectRecent = async function (req: Request, res: Response) {
             let filterstr = `(record/o eq '${key}') and (created_by eq '${userId}')`;
             let recent_view_options: any = { filters: filterstr, fields: ['record'], sort: 'created desc' };
             let recent_view_records = await recent_view_collection.find(recent_view_options, userSession);
+            let odataCount = recent_view_records.length;
             let recent_view_records_ids: any = _.pluck(recent_view_records, 'record');
             recent_view_records_ids = recent_view_records_ids.getProperty('ids');
             recent_view_records_ids = _.flatten(recent_view_records_ids);
             recent_view_records_ids = _.uniq(recent_view_records_ids);
             getODataManager().removeInvalidMethod(queryParams);
-            let qs = decodeURIComponent(querystring.stringify(queryParams));
+            let qs = decodeURIComponent(querystring.stringify(queryParams as querystring.ParsedUrlQueryInput));
             if (qs) {
                 var createQuery = odataV4Mongodb.createQuery(qs);
             } else {
@@ -123,7 +127,7 @@ const getObjectRecent = async function (req: Request, res: Response) {
             }
 
             let entities = [];
-            let filters = queryParams.$filter;
+            let filters = queryParams.$filter as string ;
             let fields = [];
             if (queryParams.$select) {
                 fields = _.keys(createQuery.projection)
@@ -168,7 +172,7 @@ const getObjectRecent = async function (req: Request, res: Response) {
                 let body = {};
                 body['@odata.context'] = getCreator().getODataContextPath(spaceId, key);
                 if (queryParams.$count != 'false') {
-                    body['@odata.count'] = recent_view_records_ids.length;
+                    body['@odata.count'] = odataCount;
                 }
                 let entities_OdataProperties = getCreator().setOdataProperty(sort_entities, spaceId, key);
                 body['value'] = entities_OdataProperties;
@@ -249,13 +253,14 @@ const getObjectData = async function (req: Request, res: Response) {
         if (entity) {
             fieldValue = entity[fieldName];
         }
-        let field = collection.fields[fieldName];
+        let field = await collection.getField(fieldName);
         if (field && fieldValue && (field.type === 'lookup' || field.type === 'master_detail')) {
             let lookupCollection = getCreator().getSteedosSchema().getObject(field.reference_to);
             let fields = [];
             // let readable_fields: any = await getCreator().getFields(field.reference_to, spaceId, userId);
             let permissions = await lookupCollection.getUserObjectPermission(userSession);
-            let readable_fields: any = getODataManager().getReadableFields(lookupCollection.fields, permissions.unreadable_fields);
+            let referenceObjectFields = await lookupCollection.getFields();
+            let readable_fields: any = getODataManager().getReadableFields(referenceObjectFields, permissions.unreadable_fields);
             _.each(readable_fields, function (f: string) {
                 if (f.indexOf('$') < 0) {
                     return fields.push(f)
@@ -304,7 +309,7 @@ const getObjectData = async function (req: Request, res: Response) {
             let permissions = await collection.getUserObjectPermission(userSession);
             if (permissions.allowRead) {
                 getODataManager().removeInvalidMethod(queryParams);
-                let qs = decodeURIComponent(querystring.stringify(queryParams));
+                let qs = decodeURIComponent(querystring.stringify(queryParams as querystring.ParsedUrlQueryInput));
                 if (qs) {
                     var createQuery = odataV4Mongodb.createQuery(qs);
                 } else {
@@ -325,13 +330,13 @@ const getObjectData = async function (req: Request, res: Response) {
                 let entities = [];
                 if (entity) {
                     let body = {};
-                        entities.push(entity);
-                        await getODataManager().dealWithExpand(createQuery, entities, key, spaceId, userSession);
-                        body['@odata.context'] = getCreator().getODataContextPath(spaceId, key) + '/$entity';
-                        let entity_OdataProperties = getCreator().setOdataProperty(entities, spaceId, key);
-                        _.extend(body, entity_OdataProperties[0]);
-                        getODataManager().setHeaders(res);
-                        res.send(body);
+                    entities.push(entity);
+                    await getODataManager().dealWithExpand(createQuery, entities, key, spaceId, userSession);
+                    body['@odata.context'] = getCreator().getODataContextPath(spaceId, key) + '/$entity';
+                    let entity_OdataProperties = getCreator().setOdataProperty(entities, spaceId, key);
+                    _.extend(body, entity_OdataProperties[0]);
+                    getODataManager().setHeaders(res);
+                    res.send(body);
                 } else {
                     res.status(404).send(setErrorMessage(404, collection, key, 'get'));
                 }
@@ -352,7 +357,7 @@ const updateObjectData = async function (req: Request, res: Response) {
         let urlParams = req.params;
         let bodyParams = req.body;
         let key = urlParams.objectName;
-        // let spaceId = userSession.spaceId;
+        let spaceId = userSession.spaceId;
         let recordId = urlParams._id;
         let setErrorMessage = getODataManager().setErrorMessage;
 
@@ -383,8 +388,14 @@ const updateObjectData = async function (req: Request, res: Response) {
                 })
                 let entityIsUpdated = await collection.update(recordId, data, userSession);
                 if (entityIsUpdated) {
+                    let entities = []
+                    let body = {};
+                    entities.push(entityIsUpdated);
+                    body['@odata.context'] = getCreator().getODataContextPath(spaceId, key) + '/$entity';
+                    let entity_OdataProperties = getCreator().setOdataProperty(entities, spaceId, key);
+                    body['value'] = entity_OdataProperties;
                     getODataManager().setHeaders(res);
-                    res.send({});
+                    res.send(body);
                 } else {
                     res.status(404).send(setErrorMessage(404, collection, key));
                 }
@@ -416,6 +427,9 @@ const deleteObjectData = async function (req: Request, res: Response) {
         }
         let permissions = await collection.getUserObjectPermission(userSession);
         let recordData = await collection.findOne(recordId, { fields: ['owner', 'company_id'] });
+        if(!recordData){
+            return res.send({});
+        }
         let record_owner = recordData.owner;
         // let companyId = recordData.company_id;
         let isAllowed = (permissions.modifyAllRecords && permissions.allowDelete) || (permissions.modifyCompanyRecords && permissions.allowDelete) || (permissions.allowDelete && record_owner === userId);
@@ -448,15 +462,20 @@ const deleteObjectData = async function (req: Request, res: Response) {
     }
 }
 
-const excuteObjectMethod = async function (req: Request, res: Response) {
+const excuteObjectMethod = async function (req: Request, res: Response, next: any) {
     try {
         let userSession = req.user;
         // let userId = userSession.userId;
         let urlParams = req.params;
         // let bodyParams = req.body;
         let key = urlParams.objectName;
+
+        if (key === 'spaces') {
+            return next()
+        }
+
         // let spaceId = userSession.spaceId;
-        let collection = getCreator().getSteedosSchema().getObject(key);
+        let collection = getCreator().getSteedosSchema().getLocalObject(key);
         let setErrorMessage = getODataManager().setErrorMessage;
 
         if (!collection) {
@@ -465,7 +484,7 @@ const excuteObjectMethod = async function (req: Request, res: Response) {
         let permissions = await collection.getUserObjectPermission(userSession);
         if (permissions.allowRead) {
             let methodName = urlParams.methodName;
-            let methods = collection.methods || {};
+            let methods = getObjectConfig(key).methods || {};
             if (methods.hasOwnProperty(methodName)) {
                 // let thisObj = {
                 //     object_name: key,

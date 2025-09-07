@@ -3,7 +3,9 @@ label: Attachments
 icon: drafts
 enable_search: true
 enable_api: true
-hidden: true
+enable_chatter: true
+hidden: false
+version: 2
 fields:
   name:
     label: Name
@@ -11,16 +13,19 @@ fields:
     searchable: true
     index: true
     is_wide: true
+    readonly: true
     name: name
   description:
     label: Description
     type: textarea
     is_wide: true
+    readonly: true
     name: description
   extention:
     label: Extention
     type: text
     disabled: true
+    readonly: true
     name: extention
   size:
     label: Size
@@ -32,13 +37,13 @@ fields:
     type: file
     collection: files
     multiple: true
-    omit: true
-    hidden: true
+    visible_on: "{{false}}"
     name: versions
   parent:
     label: Parent
     type: lookup
-    omit: true
+    readonly: true
+    visible_on: "{{global.mode ==='read' ? true : false}}"
     index: true
     reference_to: !<tag:yaml.org,2002:js/function> |- 
       function () {
@@ -46,17 +51,24 @@ fields:
             }
     name: parent
     filterable: true
+  allow_anonymous_downloads:
+    label: Allow Anonymous Downloads
+    type: boolean
 list_views:
   all:
     columns:
-      - name
+      - field: name
+        wrap: false
+        amis: {
+          tpl: '<a href="/app/${appId}/cms_files/view/${_id}?side_object=${objectName}&side_listview_id=${listName}"  onclick="return false;">${${_display.name || name} | raw}</a><span class="file-version ml-1.5 italic text-lg text-amber-600 font-medium">V<span class="file-version-number text-sm">${versions.length}</span></span>'
+        }
       - size
       - owner
       - created
       - modified
     extra_columns:
       - versions
-    order:
+    sort:
       - - modified
         - asc
     filter_scope: space
@@ -73,7 +85,7 @@ permission_set:
     allowDelete: true
     allowEdit: true
     allowRead: true
-    modifyAllRecords: false
+    modifyAllRecords: true
     viewAllRecords: true
 
 actions:
@@ -83,134 +95,275 @@ actions:
   standard_open_view:
     label: Open
     visible: true
+  online_preview:
+    label: Preview
+    sort: 110
+    visible: !<tag:yaml.org,2002:js/function> |-
+      function (object_name, record_id, record_permissions, record) {
+              if(!record){
+                return false;
+              }
+              if (Meteor.isCordova){
+                return false;
+              }
+              var file = record;
+              if (Creator.showPreviewButton(file.name) || Creator.isImageAttachment(file.name) || Creator.isHtmlAttachment(file.name))
+                return true;
+              
+              return false;
+            }
+    'on': record
   standard_edit:
     label: Edit
     sort: 0
     visible: !<tag:yaml.org,2002:js/function> |-
-      function (object_name, record_id, record_permissions) {
-                var fileRecord, object_fields_keys, perms, record, ref, select;
-              perms = {};
-              if (object_name === Session.get('object_name')) {
-                  fileRecord = Creator.getObjectRecord();
-                if (!fileRecord) {
-                    return false;
-                }
-                object_name = fileRecord.parent['reference_to._o'];
-                record_id = fileRecord.parent._id;
-              } else {
-                  object_name = Session.get('object_name');
-                record_id = Session.get("record_id");
-              }
-              object_fields_keys = _.keys(((ref = Creator.getObject(object_name, Session.get("spaceId"))) != null ? ref.fields : void 0) || {}) || [];
-              select = _.intersection(object_fields_keys, ['owner', 'company_id', 'locked']) || [];
-              if (select.length > 0) {
-                  record = Creator.getObjectRecord(object_name, record_id, select.join(','));
-              } else {
-                  record = {};
-              }
-              record_permissions = Creator.getRecordPermissions(object_name, record, Meteor.userId());
-              if (record_permissions) {
-                  perms = record_permissions;
-              }
-              return perms["allowEdit"];
-            }
+      function (object_name, record_id, record_permissions, record) {
+        return Creator.USER_CONTEXT.user.is_space_admin
+      }
     'on': record
     todo: standard_edit
   standard_delete:
     label: Delete
     visible: !<tag:yaml.org,2002:js/function> |-
-      function (object_name, record_id, record_permissions) {
-                var fileRecord, object_fields_keys, perms, record, ref, select;
-              perms = {};
-              if (object_name === Session.get('object_name')) {
-                  fileRecord = Creator.getObjectRecord();
-                if (!fileRecord) {
-                    return false;
-                }
-                object_name = fileRecord.parent['reference_to._o'];
-                record_id = fileRecord.parent._id;
-              } else {
-                  object_name = Session.get('object_name');
-                record_id = Session.get("record_id");
-              }
-              object_fields_keys = _.keys(((ref = Creator.getObject(object_name, Session.get("spaceId"))) != null ? ref.fields : void 0) || {}) || [];
-              select = _.intersection(object_fields_keys, ['owner', 'company_id', 'locked']) || [];
-              if (select.length > 0) {
-                  record = Creator.getObjectRecord(object_name, record_id, select.join(','));
-              } else {
-                  record = {};
-              }
-              record_permissions = Creator.getRecordPermissions(object_name, record, Meteor.userId());
-              if (record_permissions) {
-                  perms = record_permissions;
-              }
-              return perms["allowEdit"];
+      function (object_name, record_id, record_permissions, record) {
+        if(record_permissions){
+          return record_permissions["allowDelete"];
+        }
+        else{
+          var object_fields_keys, ref, select;
+          if(!record){
+            object_fields_keys = _.keys(((ref = Creator.getObject(object_name, Session.get("spaceId"))) != null ? ref.fields : void 0) || {}) || [];
+            select = _.intersection(object_fields_keys, ['owner', 'company_id', 'locked']) || [];
+            if (select.length > 0) {
+                record = Creator.getObjectRecord(object_name, record_id, select.join(','));
+            } else {
+                record = {};
             }
+            record = Creator.getObjectRecord(object_name, record_id, select.join(','));
+          }
+          record_permissions = Creator.getRecordPermissions(object_name, record, Meteor.userId());
+          return record_permissions && record_permissions["allowDelete"];
+        }
+      }
     'on': record_more
     todo: standard_delete
   download:
     label: Download
-    visible: !<tag:yaml.org,2002:js/function> |-
-      function (object_name, record_id, record_permissions) {
-              var fileRecord;
-              if (object_name === Session.get('object_name')) {
-                fileRecord = Creator.getObjectRecord();
-                if (!fileRecord) {
-                  return false;
-                }
-              }
-              return true;
-            }
     'on': record
-    todo: !<tag:yaml.org,2002:js/function> |-
-      function (object_name, record_id) {
-              var file, fileId, filename, length, ref, rev, url;
-              file = this.record;
-              fileId = file != null ? (ref = file.versions) != null ? ref[0] : void 0 : void 0;
-              if (fileId) {
-                  if (Meteor.isCordova) {
-                    url = Steedos.absoluteUrl("/api/files/files/" + fileId);
-                  filename = file.name;
-                  rev = fileId;
-                  length = file.size;
-                  return Steedos.cordovaDownload(url, filename, rev, length);
-                } else {
-                    url = Steedos.absoluteUrl("/api/files/files/" + fileId + "?download=true");
-                    return window.location = url;
-                }
-              }
-            }
   new_version:
     label: Upgrade
+    type: amis_button
     visible: !<tag:yaml.org,2002:js/function> |- 
-      function (object_name, record_id, record_permissions) {
-                var fileRecord, object_fields_keys, perms, record, ref, select;
-              perms = {};
-              if (object_name === Session.get('object_name')) {
-                  fileRecord = Creator.getObjectRecord();
-                if (!fileRecord) {
-                    return false;
-                }
-                object_name = fileRecord.parent['reference_to._o'];
-                record_id = fileRecord.parent._id;
-              } else {
-                  object_name = Session.get('object_name');
-                record_id = Session.get("record_id");
-              }
-              object_fields_keys = _.keys(((ref = Creator.getObject(object_name, Session.get("spaceId"))) != null ? ref.fields : void 0) || {}) || [];
-              select = _.intersection(object_fields_keys, ['owner', 'company_id', 'locked']) || [];
-              if (select.length > 0) {
-                  record = Creator.getObjectRecord(object_name, record_id, select.join(','));
-              } else {
-                  record = {};
-              }
-              record_permissions = Creator.getRecordPermissions(object_name, record, Meteor.userId());
-              if (record_permissions) {
-                  perms = record_permissions;
-              }
-              return perms["allowEdit"];
+      function (object_name, record_id, record_permissions, record) {
+        if(record_permissions){
+          return record_permissions["allowEdit"];
+        }
+        else{
+          var object_fields_keys, ref, select;
+          if(!record){
+            object_fields_keys = _.keys(((ref = Creator.getObject(object_name, Session.get("spaceId"))) != null ? ref.fields : void 0) || {}) || [];
+            select = _.intersection(object_fields_keys, ['owner', 'company_id', 'locked']) || [];
+            if (select.length > 0) {
+                record = Creator.getObjectRecord(object_name, record_id, select.join(','));
+            } else {
+                record = {};
             }
+            record = Creator.getObjectRecord(object_name, record_id, select.join(','));
+          }
+          record_permissions = Creator.getRecordPermissions(object_name, record, Meteor.userId());
+          return record_permissions && record_permissions["allowEdit"];
+        }
+      }
     is_file: true
     'on': record_only
-    todo: !<tag:yaml.org,2002:js/function> |- 
-      function (object_name, record_id) {}
+    amis_schema: |-
+        {
+            "type": "service",
+            "body": [
+                {
+                    "type": "form",
+                    "title": "表单",
+                    "body": [
+                        {
+                            "type": "input-file",
+                            "label": "",
+                            "name": "__file",
+                            "id": "u:a58d02614e04",
+                            "btnLabel": "上传新版本",
+                            "btnClassName": "m-0",
+                            "className": "p-0",
+                            "multiple": false,
+                            "maxLength": 10,
+                            "submitType": "asUpload",
+                            "uploadType": "fileReceptor",
+                            "proxy": false,
+                            "drag": false,
+                            "autoUpload": true,
+                            "useChunk": false,
+                            "joinValues": false,
+                            "extractValue": false,
+                            "valueField": "version_id",
+                            "receiver": {
+                                "url": "${context.rootUrl}/s3/",
+                                "headers": {
+                                    "Authorization": "Bearer ${context.tenantId},${context.authToken}"
+                                },
+                                "method": "post",
+                                "messages": {},
+                                "dataType": "form-data",
+                                "requestAdaptor": "const superData = (typeof context != 'undefined') ? context : api.body; api.data.append('record_id', superData._master.recordId);api.data.append('parent', superData._master.recordId);api.data.append('object_name', superData._master.objectName); api.data.append('space', superData.global.spaceId);api.data.append('owner', superData.global.userId);api.data.append('owner_name', superData.global.user.name);return api;",
+                                "adaptor": "if(payload.errors && payload.errors.length > 0){payload = {status: 500,msg: payload.errors[0].errorMessage}};return payload;"
+                            },
+                            "onEvent": {
+                                "success": {
+                                    "weight": 0,
+                                    "actions": [
+                                        {
+                                            "componentId": "u:a58d02614e04",
+                                            "args": {},
+                                            "actionType": "clear"
+                                        },
+                                        {
+                                            "componentId": "",
+                                            "args": {
+                                                "msgType": "success",
+                                                "position": "top-right",
+                                                "closeButton": true,
+                                                "showIcon": true,
+                                                "msg": "上传成功"
+                                            },
+                                            "actionType": "toast"
+                                        },
+                                        {
+                                          "actionType": "reload",
+                                          "componentId": "service_detail_page"
+                                        },
+                                        {
+                                          "actionType": "broadcast",
+                                          "args": {
+                                            "eventName": "@data.changed.cfs_files_filerecord"
+                                          }
+                                        }
+                                    ]
+                                },
+                                "fail": {
+                                "actions": [
+                                  {
+                                    "actionType": "custom",
+                                    "script": "doAction({'actionType': 'toast', 'args': {msgType: 'error', position: 'top-right', closeButton: true, showIcon: true, msg: context.state.error}});"
+                                  },
+                                    {
+                                        "componentId": "u:a58d02614e04",
+                                        "args": {},
+                                        "actionType": "clear"
+                                    }
+                                  ]
+                                }
+                            }
+                        }
+                    ],
+                    "id": "u:5f901c0b917b",
+                    "wrapWithPanel": false
+                }
+            ]
+        }
+  upload:
+    label: Upload
+    on: list
+    type: amis_button
+    visible: !!js/function |
+      function(){
+        if(arguments.length > 3){
+          var ctx = arguments[3];
+          if(ctx && ctx._isRelated){
+            return ctx.recordPermissions.allowCreateFiles
+          }
+        }
+      }
+    amis_schema: |-
+        {
+            "type": "service",
+            "body": [
+                {
+                    "type": "form",
+                    "title": "表单",
+                    "body": [
+                        {
+                            "type": "input-file",
+                            "label": "",
+                            "name": "__file",
+                            "id": "u:a58d02614e04",
+                            "btnLabel": "上传",
+                            "btnClassName": "m-0",
+                            "className": "p-0",
+                            "multiple": false,
+                            "maxLength": 10,
+                            "submitType": "asUpload",
+                            "uploadType": "fileReceptor",
+                            "proxy": false,
+                            "drag": false,
+                            "autoUpload": true,
+                            "useChunk": false,
+                            "joinValues": false,
+                            "extractValue": false,
+                            "valueField": "version_id",
+                            "receiver": {
+                                "url": "${context.rootUrl}/s3/",
+                                "headers": {
+                                    "Authorization": "Bearer ${context.tenantId},${context.authToken}"
+                                },
+                                "method": "post",
+                                "messages": {},
+                                "dataType": "form-data",
+                                "requestAdaptor": "const superData = (typeof context != 'undefined') ? context : api.body; api.data.append('record_id', superData._master.recordId);api.data.append('object_name', superData._master.objectName); api.data.append('space', superData.global.spaceId);api.data.append('owner', superData.global.userId);api.data.append('owner_name', superData.global.user.name);return api;",
+                                "adaptor": "if(payload.errors && payload.errors.length > 0){payload = {status: 500,msg: payload.errors[0].errorMessage}};return payload;"
+                            },
+                            "onEvent": {
+                                "success": {
+                                    "weight": 0,
+                                    "actions": [
+                                        {
+                                            "componentId": "u:a58d02614e04",
+                                            "args": {},
+                                            "actionType": "clear"
+                                        },
+                                        {
+                                            "componentId": "",
+                                            "args": {
+                                                "msgType": "success",
+                                                "position": "top-right",
+                                                "closeButton": true,
+                                                "showIcon": true,
+                                                "msg": "${'cms_files.upload.message_success' | t}"
+                                            },
+                                            "actionType": "toast"
+                                        },
+                                        {
+                                          "componentId": "",
+                                          "args": {},
+                                          "actionType": "custom",
+                                          "script": "doAction({\n  componentId: `steedos-record-related-list-${context.props.data.objectName}`,\n  actionType: \"setValue\",\n  args: {\n    value: { \"$count\": undefined }\n  }\n}); SteedosUI.getRef(context.props.data.scopeId).parent?.getComponentById(`listview_${context.props.data.objectName}`).handleAction({}, { actionType: 'reload'})"
+                                        }
+                                    ]
+                                },
+                                "fail": {
+                                "actions": [
+                                    {
+                                    "actionType": "custom",
+                                    "script": "doAction({'actionType': 'toast', 'args': {msgType: 'error', position: 'top-right', closeButton: true, showIcon: true, msg: event.data.error.message}});"
+                                  },
+                                    {
+                                        "componentId": "u:a58d02614e04",
+                                        "args": {},
+                                        "actionType": "clear"
+                                    }
+                                  ]
+                                }
+                            }
+                        }
+                    ],
+                    "id": "u:5f901c0b917b",
+                    "wrapWithPanel": false
+                }
+            ]
+        }

@@ -1,0 +1,130 @@
+name: installPackageFromUrl
+label: 手动安装软件包
+'on': list
+#TODO: ${'steedos_packages.install.initialization_failure' | t} ,${'steedos_packages.install.installation_success' | t}，${'steedos_packages.install.installation_failure' | t}，等待amis合并分支，可用该代码,用于form组件的message属性
+amis_schema: |-
+  {
+      "type": "service",
+      "body": [
+          {
+              "type": "button",
+              "label": "${'steedos_packages.install.install_package_from_url' | t}",
+              "id": "u:install_package_from_url",
+              "onEvent": {
+                  "click": {
+                      "actions": [
+                          {
+                              "actionType": "dialog",
+                              "dialog": {
+                                  "type": "dialog",
+                                  "title": "${'steedos_packages.install.install_package_from_url' | t}",
+                                  "body": [
+                                        
+                                      {
+                                          "type": "form",
+                                          "id": "u:add9d810b386",
+                                          "title": "",
+                                          "body": [
+                                              {
+                                                  "label": "${'steedos_packages.install.package_name' | t}",
+                                                  "type": "input-text",
+                                                  "name": "package",
+                                                  "id": "u:524cb8f8d888",
+                                                  "required": true
+                                              },
+                                              {
+                                                  "label": "镜像源",
+                                                  "type": "input-text",
+                                                  "name": "registry",
+                                                  "id": "u:524cb8f8d666",
+                                                  "required": false,
+                                                  "options": [
+                                                        {
+                                                            "label": "淘宝源",
+                                                            "value": "https://registry.npmmirror.com"
+                                                        },
+                                                        {
+                                                            "label": "cnpm",
+                                                            "value": "https://r.cnpmjs.org"
+                                                        },
+                                                        {
+                                                            "label": "官方源",
+                                                            "value": "https://registry.npmjs.org"
+                                                        }
+                                                    ]
+                                              }
+                                          ],
+                                          "mode": "normal",
+                                          "api": {
+                                              "method": "post",
+                                              "url": "${context.rootUrl}/api/nodes/package/add",
+                                              "data": {
+                                                  "&": "$$"
+                                              },
+                                              "dataType": "json",
+                                              "requestAdaptor": "api.data = {package: api.body.registry ? `${api.body.package} --registry ${api.body.registry}` : api.body.package};",
+                                              "headers": {
+                                                  "Authorization": "Bearer ${context.tenantId},${context.authToken}"
+                                              }
+                                          },
+                                          "messages": {
+                                              "fetchFailed": "初始化失败",
+                                              "saveSuccess": "安装成功", 
+                                              "saveFailed": "安装失败" 
+                                          },
+                                          "onEvent": {
+                                            "submitSucc": {
+                                                "weight": 0,
+                                                "actions": [
+                                                    {
+                                                        "actionType": "broadcast",
+                                                        "args": {
+                                                            "eventName": "@data.changed.steedos_packages"
+                                                        },
+                                                        "data": {
+                                                            "objectName": "steedos_packages",
+                                                            "recordId": "install"
+                                                        }
+                                                    }
+                                                ]
+                                            }
+                                            }
+                                      },
+                                      {
+                                        "type": "tpl",
+                                        "tpl": "<br/>"
+                                      },
+                                      {
+                                        "type": "markdown",
+                                        "value": "##### 您可以使用以下选项之一指定版本： \r- `package-name`安装包的“最新”版本。 \r- `package-name@1.2.3`从以下位置安装包的特定版本 注册表。 \r- `package-name@tag`安装特定的“标签”。（例如）beta、next、latest"
+                                        },
+                                        {
+                                        "type": "markdown",
+                                        "value": "##### 您还可以指定来自不同位置的包：\r- `package-name` 从 npm 注册表安装包 \r- `file:/path/to/local/folder`安装一个位于本地文件系统的包。这对于测试您尚未发布到注册表的软件包很有用。 \r- `file:/path/to/local/tarball.tgz`从 gzip 压缩的 tarball，可用于在发布包之前共享包。 \r- `link:/path/to/local/folder`安装指向软件包的符号链接:在本地文件系统上。适用于monorepo环境。 \r- `<git remote url>`从远程 Git 存储库安装包。 \r- `<git remote url>#<branch/commit/tag>`从远程安装软件包特定 git 分支、git commit 或 git 标签处的 git 存储库。 \r- `https://my-project.org/package.tgz` 从远程gzip压缩压缩包。"
+                                        }
+                                  ],
+                                  "id": "u:efa30bace722",
+                                  "closeOnEsc": true,
+                                  "closeOnOutside": false,
+                                  "showCloseButton": true,
+                                  "size": "lg"
+                              }
+                          }
+                      ],
+                      "weight": 0
+                  }
+              }
+          }
+      ],
+      "regions": [
+          "body"
+      ],
+      "data": {
+         
+      },
+      "bodyClassName": "p-0",
+      "id": "u:43363bc48c62"
+  }
+is_enable: true
+type: amis_button
+visible: true

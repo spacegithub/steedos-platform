@@ -1,0 +1,6 @@
+extend: objects
+actions:
+  schemaBuilder:
+    label: Schema Builder
+    visible: true
+    on: list

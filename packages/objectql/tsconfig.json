@@ -14,9 +14,10 @@
         //"noImplicitReturns": true,
         "stripInternal": true,
         "pretty": true,
-        //"strictNullChecks": true,
-        "noUnusedLocals": true,
+        "strictNullChecks": false,
+        "noUnusedLocals": false,
         "downlevelIteration": true,
+        "skipLibCheck": true,
         "lib": [
           "es5",
           "es6",
@@ -25,6 +26,7 @@
           "es2017",
           "esnext"
         ],
+        "removeComments": true
     },
     "include": [
       "./src/**/*"

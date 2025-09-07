@@ -1,9 +1,11 @@
 import { SteedosListenerConfig, getObject, SteedosObjectTypeConfig } from '../types'
-import { wrapAsync } from './index'
+import { wrapAsync } from '../index'
 import _ = require("underscore");
-const ENUM_WHEN = ['beforeFind','beforeInsert','beforeUpdate','beforeDelete','afterInsert','afterUpdate','afterDelete']
+import { SteedosTriggerContextConfig } from '../types/trigger';
+import { TriggerActionParams } from '../ts-types';
+const ENUM_WHEN = ['beforeFind', 'beforeInsert', 'beforeUpdate', 'beforeDelete', 'afterFind', 'afterCount', 'afterFindOne', 'afterInsert', 'afterUpdate', 'afterDelete']
 
-function getBaseContext(object: SteedosObjectTypeConfig){
+function getBaseContext(object: SteedosObjectTypeConfig) {
     return {
         object_name: object.name,
         datasource_name: object.datasource,
@@ -11,7 +13,7 @@ function getBaseContext(object: SteedosObjectTypeConfig){
     }
 }
 
-function getTriggerWhen(when: string){
+function getTriggerWhen(when: string) {
     switch (when) {
         case 'beforeFind':
             return 'before.find';
@@ -21,6 +23,12 @@ function getTriggerWhen(when: string){
             return 'before.update';
         case 'beforeDelete':
             return 'before.remove';
+        case 'afterFind':
+            return 'after.find';
+        case 'afterCount':
+            return 'after.count'
+        case 'afterFindOne':
+            return 'after.findOne';
         case 'afterInsert':
             return 'after.insert';
         case 'afterUpdate':
@@ -32,58 +40,81 @@ function getTriggerWhen(when: string){
     }
 }
 
-function transformListenerToTrigger(object: SteedosObjectTypeConfig, when: string, todo: Function){
-    return {
+function transformListenerToTrigger(object: SteedosObjectTypeConfig, when: string, todo: Function, json) {
+    let trigger: any = {
         on: 'server',
         when: getTriggerWhen(when),
-        todo: transformTrigger(object, when, todo)
+        todo: transformTrigger(object, when, todo),
+        metadataServiceName: json.metadataServiceName
+    }
+
+    if (json._id) {
+        trigger._id = json._id
+    }
+    return trigger
+}
+
+function proxyBeforeFind(trigger: Function, baseContext) {
+    return function (userId, selector, options) {
+        return wrapAsync(trigger, Object.assign({ userId, spaceId: selector.space, selector, options }, baseContext));
     }
 }
 
-function proxyBeforeFind(trigger: Function, baseContext){
-    return function(userId, selector, options){
-        return wrapAsync(trigger, Object.assign({userId, selector, options}, baseContext));
+function proxyBeforeInsert(trigger: Function, baseContext) {
+    return function (userId, doc) {
+        return wrapAsync(trigger, Object.assign({ userId, spaceId: doc.space, doc }, baseContext));
     }
 }
 
-function proxyBeforeInsert(trigger: Function, baseContext){
-    return function(userId, doc){
-        return wrapAsync(trigger, Object.assign({userId, doc}, baseContext));
+function proxyBeforeUpdate(trigger: Function, baseContext) {
+    return function (userId, doc, fieldNames, modifier, options) {
+        return wrapAsync(trigger, Object.assign({ userId: userId, spaceId: doc.space, id: doc._id, doc: modifier.$set, getObject: getObject }, baseContext))
     }
 }
 
-function proxyBeforeUpdate(trigger: Function, baseContext){
-    return function(userId, doc, fieldNames, modifier, options){
-        return wrapAsync(trigger, Object.assign({userId: userId, id: doc._id, doc: modifier.$set, getObject: getObject}, baseContext))
+function proxyBeforeDelete(trigger: Function, baseContext) {
+    return function (userId, doc) {
+        return wrapAsync(trigger, Object.assign({ userId, spaceId: doc.space, id: doc._id }, baseContext))
     }
 }
 
-function proxyBeforeDelete(trigger: Function, baseContext){
-    return function(userId, doc){
-        return wrapAsync(trigger, Object.assign({userId, id: doc._id}, baseContext))
+function proxyAfterFind(trigger: Function, baseContext) {
+    return function (userId, doc) {
+        return wrapAsync(trigger, Object.assign({ userId, spaceId: doc.space, id: doc._id }, baseContext))
+    }
+}
+function proxyAfterCount(trigger: Function, baseContext) {
+    return function (userId, doc) {
+        return wrapAsync(trigger, Object.assign({ userId, spaceId: doc.space, id: doc._id }, baseContext))
     }
 }
 
-function proxyAfterInsert(trigger: Function, baseContext){
-    return function(userId, doc){
-        return wrapAsync(trigger, Object.assign({userId, doc}, baseContext));
+function proxyAfterFindOne(trigger: Function, baseContext) {
+    return function (userId, doc) {
+        return wrapAsync(trigger, Object.assign({ userId, spaceId: doc.space, id: doc._id }, baseContext))
     }
 }
 
-function proxyAfterUpdate(trigger: Function, baseContext){
-    return function(userId, doc, fieldNames, modifier, options){
-        return wrapAsync(trigger, Object.assign({userId: userId, id: doc._id, doc: modifier.$set, previousDoc: this.previous}, baseContext))
+function proxyAfterInsert(trigger: Function, baseContext) {
+    return function (userId, doc) {
+        return wrapAsync(trigger, Object.assign({ userId, spaceId: doc.space, doc }, baseContext));
     }
 }
 
-function proxyAfterDelete(trigger: Function, baseContext){
-    return function(userId, doc){
-        return wrapAsync(trigger, Object.assign({userId, id: doc._id, previousDoc: doc}, baseContext))
+function proxyAfterUpdate(trigger: Function, baseContext) {
+    return function (userId, doc, fieldNames, modifier, options) {
+        return wrapAsync(trigger, Object.assign({ userId: userId, spaceId: doc.space, id: doc._id, doc: modifier.$set, previousDoc: this.previous }, baseContext))
     }
 }
 
-function transformTrigger(object: SteedosObjectTypeConfig, when: string, trigger: Function){
-    if(trigger.length == 0){
+function proxyAfterDelete(trigger: Function, baseContext) {
+    return function (userId, doc) {
+        return wrapAsync(trigger, Object.assign({ userId, spaceId: doc.space, id: doc._id, previousDoc: doc }, baseContext))
+    }
+}
+
+function transformTrigger(object: SteedosObjectTypeConfig, when: string, trigger: Function) {
+    if (trigger.length == 0) {
         let baseContext = getBaseContext(object);
         switch (when) {
             case 'beforeFind':
@@ -94,6 +125,12 @@ function transformTrigger(object: SteedosObjectTypeConfig, when: string, trigger
                 return proxyBeforeUpdate(trigger, baseContext)
             case 'beforeDelete':
                 return proxyBeforeDelete(trigger, baseContext)
+            case 'afterFind':
+                return proxyAfterFind(trigger, baseContext)
+            case 'afterCount':
+                return proxyAfterCount(trigger, baseContext)
+            case 'afterFindOne':
+                return proxyAfterFindOne(trigger, baseContext)
             case 'afterInsert':
                 return proxyAfterInsert(trigger, baseContext)
             case 'afterUpdate':
@@ -107,13 +144,77 @@ function transformTrigger(object: SteedosObjectTypeConfig, when: string, trigger
     return trigger;
 }
 
-export function transformListenersToTriggers(object: SteedosObjectTypeConfig, json: SteedosListenerConfig){
+export function transformListenersToTriggers(object: SteedosObjectTypeConfig, json: SteedosListenerConfig) {
     let triggerPrefix = json.name
     let triggers = {}
-    _.each(ENUM_WHEN, (_when)=>{
-        if(json[_when]){
-            triggers[`${triggerPrefix}_${_when}`] = transformListenerToTrigger(object, _when, json[_when])
+    _.each(ENUM_WHEN, (_when) => {
+        if (json[_when]) {
+            triggers[`${triggerPrefix}_${_when}`] = transformListenerToTrigger(object, _when, json[_when], json)
         }
     })
     return triggers;
+}
+
+export function generateActionParams(when: string, context: SteedosTriggerContextConfig): TriggerActionParams {
+    let params: TriggerActionParams = {
+        id: context.id,
+        objectName: context.objectName,
+        userId: context.userId,
+        spaceId: context.spaceId,
+        doc: context.doc,
+        previousDoc: context.previousDoc,
+        query: context.query,
+        data: context.data,
+    };
+    switch (when) {
+        case 'beforeFind':
+            params.isBefore = true;
+            params.isFind = true;
+            break;
+        case 'beforeInsert':
+            params.isBefore = true;
+            params.isInsert = true;
+            params.size = 1;
+            break;
+        case 'beforeUpdate':
+            params.isBefore = true;
+            params.isUpdate = true;
+            params.size = 1;
+            break;
+        case 'beforeDelete':
+            params.isBefore = true;
+            params.isDelete = true;
+            params.size = 1;
+            break;
+        case 'afterFind':
+            params.isAfter = true;
+            params.isFind = true;
+            break;
+        case 'afterCount':
+            params.isAfter = true;
+            params.isCount = true;
+            break;
+        case 'afterFindOne':
+            params.isAfter = true;
+            params.isFindOne = true;
+            break;
+        case 'afterInsert':
+            params.isAfter = true;
+            params.isInsert = true;
+            params.size = 1;
+            break;
+        case 'afterUpdate':
+            params.isAfter = true;
+            params.isUpdate = true;
+            params.size = 1;
+            break;
+        case 'afterDelete':
+            params.isAfter = true;
+            params.isDelete = true;
+            params.size = 1;
+            break;
+        default:
+            break;
+    }
+    return params;
 }

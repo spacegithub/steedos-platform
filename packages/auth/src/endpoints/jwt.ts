@@ -1,4 +1,11 @@
-import { hashStampedToken, insertHashedLoginToken, hashLoginToken } from '../utils';
+/*
+ * @Author: baozhoutao@steedos.com
+ * @Date: 2022-03-28 09:35:34
+ * @LastEditors: baozhoutao@steedos.com
+ * @LastEditTime: 2022-11-16 17:15:17
+ * @Description: 
+ */
+import { hashStampedToken, insertHashedLoginToken, hashLoginToken, setAuthCookies } from '../utils';
 import { getSteedosSchema } from '@steedos/objectql'
 
 // function secretCallback(req, payload, done) {
@@ -57,18 +64,21 @@ export const jwtSSO = async (req, res) => {
     let clients = await collection.find({ filters: `clientId eq '${issuer}'` })
     let clientInfo = clients[0]
     let secret = clientInfo ? clientInfo.clientSecret : ''
+    let spaceId = clientInfo ? clientInfo.space : ''
     if (!secret) {
       throw new Error('secret is needed!')
     }
+    if (!spaceId) {
+      throw new Error('spaceId is needed!')
+    }
     let verifiedPayload = jwt.verify(token, secret);
     let data = await getTokenInfo({ user: verifiedPayload })
-    res.cookie('X-User-Id', data.userId, { maxAge: 90 * 60 * 60 * 24 * 1000, httpOnly: true });
-    res.cookie('X-Auth-Token', data.authToken, { maxAge: 90 * 60 * 60 * 24 * 1000, httpOnly: true });
+    setAuthCookies(req, res, data.userId, data.authToken, spaceId)
     let redirectUrl = verifiedPayload.redirect_url;
-    res.redirect(301, redirectUrl);
+    res.redirect(302, redirectUrl);
   } catch (error) {
     console.error(error);
-    res.status(500).send(error.messenger)
+    res.status(500).send(error.message)
   }
 
 }

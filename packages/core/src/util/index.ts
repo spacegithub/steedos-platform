@@ -8,6 +8,7 @@
 import { findKey } from '@salesforce/kit';
 import { AnyJson, asJsonMap, isJsonMap, JsonMap, Optional } from '@salesforce/ts-types';
 import { URL } from 'url';
+import { getUserLocale, getLocale } from '@steedos/objectql';
 
 const util = {
   /**
@@ -107,17 +108,49 @@ const util = {
   /**
    * Returns the object record url
    */
-  getObjectRecordUrl: (objectName: string, recordId: string, spaceId: string = null)=>{
-    let url = `/app/-/${objectName}/view/${recordId}`;
+  getObjectRecordUrl: (objectName: string, recordId: string, spaceId: string = null, options: any = {})=>{
+    let appId = '-';
+    if(options.appId){
+      appId = options.appId;
+    }
+    let url = `/app/${appId}/${objectName}/view/${recordId}`;
     if (objectName === "instances"){
         url = `/workflow/space/${spaceId}/inbox/${recordId}`;
     }
     let rootUrl = __meteor_runtime_config__ ? __meteor_runtime_config__.ROOT_URL_PATH_PREFIX : "";
+
+    if(options.rootUrl){
+      rootUrl = options.rootUrl
+    }
+
     if(rootUrl){
       url = rootUrl + url;
     }
     return url;
-  }
+  },
+  /**
+   * Returns the object record Relative url
+   */
+   getObjectRecordRelativeUrl: (objectName: string, recordId: string, spaceId: string = null, options: any = {})=>{
+    let appId = '-';
+    if(options.appId){
+      appId = options.appId;
+    }
+    let url = `/app/${appId}/${objectName}/view/${recordId}`;
+    if (objectName === "instances"){
+        url = `/workflow/space/${spaceId}/inbox/${recordId}`;
+    }
+    return url;
+  },
+  /**
+   * Returns the locale string of the user
+   */
+  getUserLocale: getUserLocale,
+
+  /**
+   * Returns the locale string of the user locale
+   */
+  getLocale: getLocale
 };
 
 export default util;
@@ -152,14 +185,14 @@ exports.loadFile = (filePath: string)=>{
     return json;
 };
 
-exports.extend = (destination: JsonMap, sources: JsonMap)=>{
+const extend = (destination: JsonMap, sources: JsonMap)=>{
     _.each(sources, (v:never, k: string)=>{
         if(!has(destination, k)){
             destination[k] = v
         }else if(isJsonMap(v)){
             let _d = getJsonMap(destination, k);
             if(isJsonMap(_d)){
-                this.extend(_d, v)
+                extend(_d, v)
             }else{
                 destination[k] = v
             }
@@ -168,6 +201,8 @@ exports.extend = (destination: JsonMap, sources: JsonMap)=>{
         }
     })
 }
+
+exports.extend = extend;
 
 exports.isObjectFile = (filePath: string)=>{
   return !fs.statSync(filePath).isDirectory() && (filePath.endsWith('.object.yml') || filePath.endsWith('.object.js'))

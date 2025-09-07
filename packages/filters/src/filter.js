@@ -1,7 +1,7 @@
 // const DevExpress = require("devextreme/bundles/modules/core");
 // const DevExpressData = require("devextreme/bundles/modules/data");
 // const DevExpressOData = require("devextreme/bundles/modules/data.odata");
-const getLDMLFormatter = require("./date.formatter").getFormatter;
+import { getFormatter as getLDMLFormatter } from "./date.formatter";
 // const Guid = require("devextreme/core/guid");
 // const EdmLiteral = require("devextreme/data/odata/utils").EdmLiteral;
 
@@ -24,7 +24,7 @@ const DevExpressData = {
 }
 
 // const defaultDateNames = DevExpress.localization.date;
-const defaultDateNames = require("./default_date_names");
+import defaultDateNames from "./default_date_names";
 
 const DevExpressOData = {
     pad(text, length, right) {
@@ -80,7 +80,7 @@ const DevExpressOData = {
         //     return value.valueOf();
         // }
         if (Array.isArray(value)) {
-            return "[" + value.map(function (item) {
+            return "[" + value.map((item)=>{
                 return this.serializeValueV4(item);
             }).join(",") + "]";
         }
@@ -142,7 +142,7 @@ const DevExpressOData = {
 
 class SteedosFilter {
 
-    constructor(filters, odataProtocolVersion = 4, forceLowerCase = true){
+    constructor(filters, odataProtocolVersion = 4, forceLowerCase){
         this.filters = filters || [];
         this.protocolVersion = odataProtocolVersion;
         this.forceLowerCase = forceLowerCase;
@@ -166,7 +166,9 @@ class SteedosFilter {
                 "contains": this.createStringFuncFormatter("contains"),
                 "notcontains": this.createStringFuncFormatter("not contains"),
                 "notstartswith": this.createStringFuncFormatter("not startswith"),
-                "notendswith": this.createStringFuncFormatter("not endswith")
+                "notendswith": this.createStringFuncFormatter("not endswith"),
+                "in": this.createBinaryOperationFormatter("in"),
+                "notin": this.createBinaryOperationFormatter("notin")
             }
         };
     }
@@ -181,7 +183,7 @@ class SteedosFilter {
         return (prop, val)=> {
             var bag = [op, "("];
 
-            if (this.forceLowerCase) {
+            if (val && this.forceLowerCase) {
                 // prop = prop.indexOf("tolower(") === -1 ? "tolower(" + prop + ")" : prop;
                 // forceLowerCase时不需要在prop外面增加tolower(..)，因为odata-v4-mongodb等包不支持
                 val = val.toLowerCase();
@@ -250,7 +252,7 @@ class SteedosFilter {
 
         return formatter(
             DevExpressOData.serializePropName(fieldName),
-            DevExpressOData.serializeValue(value, this.protocolVersion)
+            (op === 'in' || op === 'notin') ? value : DevExpressOData.serializeValue(value, this.protocolVersion)
         );
     }
 
@@ -277,5 +279,5 @@ class SteedosFilter {
     }
 }
 
-module.exports = SteedosFilter;
+export default SteedosFilter;
 

@@ -2,18 +2,21 @@ import { JsonMap, Dictionary } from "@salesforce/ts-types";
 import { SteedosDriver, SteedosFieldDBType } from "./index"
 import { MongoClient, ObjectId } from "mongodb";
 import { SteedosQueryOptions, SteedosQueryFilters } from "../types/query";
-import { SteedosIDType } from "../types";
+import { SteedosIDType, SteedosObjectType } from "../types";
 import { SteedosDriverConfig } from "./driver";
 import { formatFiltersToODataQuery } from "@steedos/filters";
-import { createFilter, createQuery } from 'odata-v4-mongodb';
+import { createFilter, createQuery } from '@steedos/odata-v4-mongodb';
 import _ = require("underscore");
-import { wrapAsync } from '../util';
+import { wrapAsync } from '../index';
+import { getMongoFieldEncryptionConsts } from './field-encrytion';
+import { formatRecord } from './format';
 
 export class SteedosMongoDriver implements SteedosDriver {
     _url: string;
     _client: any;
     _config: SteedosDriverConfig;
     _collections: Dictionary<any>;
+    _encryption: any;
 
     constructor(config: SteedosDriverConfig) {
         this._collections = {};
@@ -54,11 +57,58 @@ export class SteedosMongoDriver implements SteedosDriver {
         ]
     }
 
+    async encryptValue(value: any) {
+        if (this._encryption) {
+            const { altKeyName } = getMongoFieldEncryptionConsts();
+            const encryption = this._encryption;
+            let encryptValue = await encryption.encrypt(
+                value,
+                {
+                    keyAltName: altKeyName,
+                    algorithm: 'AEAD_AES_256_CBC_HMAC_SHA_512-Deterministic'
+                }
+            )
+            return encryptValue;
+        }
+        return value;
+    }
+    async decryptValue(value: any) {
+        if (this._encryption) {
+            const encryption = this._encryption;
+            let decryptValue = await encryption.decrypt(value)
+            return decryptValue;
+        }
+        return value;
+    }
+
     async connect() {
         if (!this._client) {
-            this._client = await MongoClient.connect(this._url, { useNewUrlParser: true, useUnifiedTopology: true });
+            if (process.env.STEEDOS_CSFLE_MASTER_KEY) {
+                const { ClientEncryption } = require("mongodb-client-encryption");
+                const { keyVaultNamespace, getKMSProviders } = getMongoFieldEncryptionConsts();
+                const kmsProvider = await getKMSProviders();
+                this._client = await MongoClient.connect(this._url, {
+                    useNewUrlParser: true, useUnifiedTopology: true,
+                    monitorCommands: true,
+                    autoEncryption: {
+                        keyVaultNamespace: keyVaultNamespace,
+                        kmsProviders: kmsProvider,
+                        bypassAutoEncryption: true,
+                    }
+                } as any)
+                this._encryption = new ClientEncryption(this._client, {
+                    keyVaultNamespace: keyVaultNamespace,
+                    kmsProviders: kmsProvider,
+                });
+            } else {
+                this._client = await MongoClient.connect(this._url, {useNewUrlParser: true, useUnifiedTopology: true });
+            }
             return true;
         }
+    }
+
+    getClient(){
+        return this._client;
     }
 
     async close() {
@@ -70,6 +120,7 @@ export class SteedosMongoDriver implements SteedosDriver {
     }
 
     formatFiltersToMongoQuery(filters: any): JsonMap {
+        let emptyFilters = {};
         let odataQuery: string = "";
         if (_.isString(filters)) {
             odataQuery = filters;
@@ -77,7 +128,10 @@ export class SteedosMongoDriver implements SteedosDriver {
         else {
             odataQuery = formatFiltersToODataQuery(filters)
         }
-        let query: JsonMap = createFilter(odataQuery)
+        if(!odataQuery){
+            return emptyFilters;
+        }
+        let query: JsonMap = createFilter(odataQuery);
         return query;
     }
 
@@ -143,6 +197,28 @@ export class SteedosMongoDriver implements SteedosDriver {
         return result;
     }
 
+    getAggregateOptions(options: SteedosQueryOptions): any[] {
+        if (_.isUndefined(options)) {
+            return [];
+        }
+        let result = [];
+        let projection: JsonMap = this.getMongoFieldsOptions(options.fields);
+        let sort: JsonMap = this.getMongoSortOptions(options.sort);
+        if (!_.isEmpty(projection)) {
+            result.push({ $project: projection });
+        }
+        if (!_.isEmpty(sort)) {
+            result.push({ $sort: sort });
+        }
+        if (options.skip) {
+            result.push({ $skip: options.skip });
+        }
+        if (options.top) {
+            result.push({ $limit: options.top });
+        }
+        return result;
+    }
+
     collection(name: string) {
         if (!this._collections[name]) {
             let db = this._client.db();
@@ -171,6 +247,55 @@ export class SteedosMongoDriver implements SteedosDriver {
         return result;
     }
 
+    async aggregate(tableName: string, query: SteedosQueryOptions, externalPipeline: any[]) {
+        await this.connect();
+        let collection = this.collection(tableName);
+        let pipeline = [];
+
+        let mongoFilters = this.getMongoFilters(query.filters);
+        let aggregateOptions = this.getAggregateOptions(query);
+
+        pipeline.push({ $match: mongoFilters });
+
+        pipeline = pipeline.concat(aggregateOptions).concat(externalPipeline);
+
+        let result = await collection.aggregate(pipeline).toArray();
+
+        return result;
+    }
+
+    async directAggregate(tableName: string, query: SteedosQueryOptions, externalPipeline: any[], userId?: SteedosIDType) {
+        await this.connect();
+        let collection = this.collection(tableName);
+        let pipeline = [];
+        if(query.filters){
+            let mongoFilters = this.getMongoFilters(query.filters);
+            let aggregateOptions = this.getAggregateOptions(query);
+            pipeline.push({ $match: mongoFilters });
+            pipeline = pipeline.concat(aggregateOptions)
+        }
+        pipeline = pipeline.concat(externalPipeline);
+        let result = await collection.aggregate(pipeline).toArray();
+        return result;
+    }
+
+    async directAggregatePrefixalPipeline(tableName: string, query: SteedosQueryOptions, prefixalPipeline: any[], userId?: SteedosIDType) {
+        await this.connect();
+        let collection = this.collection(tableName);
+        let pipeline = [];
+
+        let mongoFilters = this.getMongoFilters(query.filters);
+        let aggregateOptions = this.getAggregateOptions(query);
+
+        pipeline.push({ $match: mongoFilters });
+
+        // pipeline中的次序不能错，一定要先$lookup，再$match，再$project、$sort、$skip、$limit等，否则查询结果可能为空，比如公式字段中就用到了$lookup
+        pipeline = prefixalPipeline.concat(pipeline).concat(aggregateOptions);
+
+        let result = await collection.aggregate(pipeline).toArray();
+        return result;
+    }
+
     async count(tableName: string, query: SteedosQueryOptions) {
         await this.connect();
         let collection = this.collection(tableName);
@@ -182,12 +307,15 @@ export class SteedosMongoDriver implements SteedosDriver {
         return result;
     }
 
-    async findOne(tableName: string, id: SteedosIDType, query: SteedosQueryOptions) {
+    async findOne(tableName: string, id: SteedosIDType | SteedosQueryOptions, query: SteedosQueryOptions) {
         await this.connect();
         let collection = this.collection(tableName);
         let mongoOptions = this.getMongoOptions(query);
         let mongoFilters = this.getMongoFilters(query.filters);
-        let selector = { _id: id };
+        let selector: any = { _id: id };
+        if (_.isObject(id)) {
+            selector = this.getMongoFilters(id['filters']);
+        }
         if (!_.isEmpty(mongoFilters)) {
             selector = Object.assign(mongoFilters, selector);
         }
@@ -216,7 +344,21 @@ export class SteedosMongoDriver implements SteedosDriver {
         } else {
             selector = { _id: id };
         }
-        let result = await collection.updateOne(selector, { $set: data });
+
+        const options = {$set: {}, $unset: {}};
+        const keys = _.keys(data);
+        _.each(keys, function(key){
+            if(_.include(['$inc','$min','$max','$mul', '$push', '$addToSet', '$pop', '$pull', '$pullAll'], key)){
+                options[key] = data[key];
+            }else{
+                if (null === data[key]) {
+                    options.$unset[key] = 1;
+                } else {
+                    options.$set[key] = data[key];
+                }
+            }
+        })
+        let result = await collection.updateOne(selector, options);
         if (result.result.ok) {
             result = await collection.findOne(selector);
             return result;
@@ -261,7 +403,12 @@ export class SteedosMongoDriver implements SteedosDriver {
         } else {
             selector = { _id: id };
         }
-        await collection.deleteOne(selector);
+        const result = await collection.deleteOne(selector);
+        return result?.deletedCount;
+    }
+
+    async directFind(tableName: string, query: SteedosQueryOptions) {
+        return this.find(tableName, query)
     }
 
     async directInsert(tableName: string, data: Dictionary<any>) {
@@ -276,4 +423,15 @@ export class SteedosMongoDriver implements SteedosDriver {
         return this.delete(tableName, id)
     }
 
+    async directUpdateMany(tableName: string, queryFilters: SteedosQueryFilters, data: Dictionary<any>) {
+        return this.updateMany(tableName, queryFilters, data)
+    }
+
+    _makeNewID(tableName?: string){
+        return new ObjectId().toHexString();
+    }
+
+    formatRecord(doc: Dictionary<any>, objectConfig: SteedosObjectType){
+        return formatRecord(doc, objectConfig);
+    }
 }

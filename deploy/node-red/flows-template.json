@@ -1,0 +1,18 @@
+[
+    {
+        "id": "2276d6559d8cdc4c",
+        "type": "tab",
+        "label": "REST API",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "342436a8ef373844",
+        "type": "tab",
+        "label": "Dashboard",
+        "disabled": false,
+        "info": "",
+        "env": []
+    }
+]

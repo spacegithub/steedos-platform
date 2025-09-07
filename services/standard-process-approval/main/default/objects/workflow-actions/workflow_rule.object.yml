@@ -1,0 +1,242 @@
+name: workflow_rule
+label: Workflow Rule
+icon: maintenance_work_rule
+hidden: true
+version: 2
+enable_enhanced_lookup: true
+fields:
+  object_name:
+    label: Object Name
+    type: lookup
+    required: true
+    is_wide: true
+    reference_to: objects
+    reference_to_field: name
+    filterable: true
+  name:
+    type: text
+    required: true
+    filterable: true
+    searchable: true
+  label:
+    type: text
+    required: true
+    is_name: true
+    filterable: true
+    searchable: true
+  active:
+    type: boolean
+    filterable: true
+    # hidden: true
+  trigger_type:
+    type: select
+    is_wide: true
+    required: true
+    firstOption: false
+    options: 
+      - onCreateOnly
+      - onAllChanges
+      - onCreateOrTriggeringUpdate
+    defaultValue: onCreateOrTriggeringUpdate
+    filterable: true
+  formula:
+    type: textarea
+    is_wide: true
+    required: false
+    group: Immediate Actions
+    inlineHelpText: Run Immediate Actions if the following criteria are met.
+  updates_field_actions:
+    group: Immediate Actions
+    type: lookup
+    multiple: true
+    label: Field Update
+    is_wide: true
+    reference_to: action_field_updates
+    reference_to_field: name
+    depend_on:
+      - object_name
+    filtersFunction: !!js/function |
+      function (filters, dependValues) {
+        if(dependValues && dependValues.object_name){
+          return ['object_name','=',dependValues.object_name];
+        }
+      }
+  workflow_notifications_actions:
+    group: Immediate Actions
+    type: lookup
+    multiple: true
+    label: Workflow Notification
+    is_wide: true
+    reference_to: workflow_notifications
+    reference_to_field: name
+    depend_on:
+      - object_name
+    filtersFunction: !!js/function |
+      function (filters, dependValues) {
+        if(dependValues && dependValues.object_name){
+          return ['object_name','=',dependValues.object_name];
+        }
+      }
+  workflow_outbound_messages_actions:
+    type: lookup
+    group: Immediate Actions
+    multiple: true
+    label: 出站消息
+    is_wide: true
+    reference_to: workflow_outbound_messages
+    reference_to_field: name
+    depend_on:
+      - object_name
+    filtersFunction: !!js/function |
+      function (filters, dependValues) {
+        if(dependValues && dependValues.object_name){
+          return ['object_name','=',dependValues.object_name];
+        }
+      }
+  # boolean_filter: # TODO 暂不支持
+  #   type: text
+  # criteria: # TODO 暂不支持
+  #   type: textarea
+  filters:
+    label: 过滤条件
+    type: code
+    is_wide: true
+    hidden: false
+    readonly: false
+    # visible_on: "{{global.mode ==='read' ? true : false}}"
+    depend_on:
+      - object_name
+    inlineHelpText: Run Time-Dependent Actions if the following filters are met.
+    group: time_dependent_action
+  time_triggers:
+    type: table
+    label: 时间触发器
+    is_wide: true
+    required: false
+    group: time_dependent_action
+    amis:
+      showIndex: true
+      columns: ["number", "unit", "type", "date_field"]
+  time_triggers.$:
+    label: Field
+    blackbox: true
+    type: object
+  time_triggers.$.number:
+    label: 数值
+    type: number
+    scale: 0
+    required: true
+  time_triggers.$.unit:
+    label: 单位
+    type: select
+    options: 
+      - label: 小时
+        value: hour
+      - label: 天
+        value: day
+    required: true
+  time_triggers.$.type:
+    label: 类型
+    type: select
+    options: 
+      - label: 早于
+        value: earlier_than
+      - label: 晚于
+        value: later_than
+    required: true
+  time_triggers.$.date_field:
+    label: 日期字段
+    type: lookup
+    reference_to: object_fields
+    reference_to_field: name
+    enable_enhanced_lookup: false
+    depend_on:
+      - object_name
+    filtersFunction: !<tag:yaml.org,2002:js/function> |-
+      function (filters, values) {
+        const objectName = values.object_name;
+        if(objectName){
+          return [['object', '=', objectName], ['type', '=', ['datetime','date']]]
+        }else{
+          return ['_id', '=', 'no']
+        }
+      }
+  time_triggers.$.updates_field_actions:
+    type: lookup
+    multiple: true
+    label: 工作流操作：字段更新
+    is_wide: true
+    reference_to: action_field_updates
+    reference_to_field: name
+    depend_on:
+      - object_name
+    filtersFunction: !!js/function |
+      function (filters, dependValues) {
+        if(dependValues && dependValues.object_name){
+          return ['object_name','=',dependValues.object_name];
+        }
+      }
+  time_triggers.$.workflow_notifications_actions:
+    type: lookup
+    multiple: true
+    label: 工作流操作：工作流通知
+    is_wide: true
+    reference_to: workflow_notifications
+    reference_to_field: name
+    depend_on:
+      - object_name
+    filtersFunction: !!js/function |
+      function (filters, dependValues) {
+        if(dependValues && dependValues.object_name){
+          return ['object_name','=',dependValues.object_name];
+        }
+      }
+  time_triggers.$.workflow_outbound_messages_actions:
+    type: lookup
+    multiple: true
+    label: 工作流操作：出站消息
+    is_wide: true
+    reference_to: workflow_outbound_messages
+    reference_to_field: name
+    depend_on:
+      - object_name
+    filtersFunction: !!js/function |
+      function (filters, dependValues) {
+        if(dependValues && dependValues.object_name){
+          return ['object_name','=',dependValues.object_name];
+        }
+      }
+  description:
+    type: textarea
+    is_wide: true
+list_views:
+  all:
+    label: All
+    filter_scope: space
+    filter_fields:
+      - object_name
+    columns:
+      - label
+      - object_name
+      - trigger_type
+      - active
+      - description
+permission_set:
+  user:
+    allowCreate: false
+    allowDelete: false
+    allowEdit: false
+    allowRead: true
+    modifyAllRecords: false
+    viewAllRecords: true
+  admin:
+    allowCreate: true
+    allowDelete: true
+    allowEdit: true
+    allowRead: true
+    modifyAllRecords: true
+    viewAllRecords: true
+actions:
+  customize:
+    label: Customize
+    on: record

@@ -16,7 +16,15 @@
                                 <td colspan='3' class="trace-step-name">{{_t "instance_distribute_title"}}</td>
                             </tr>
                             <tr class="approve-item-distribute">
-                                <td class="name">{{this.from_user_name}}</td>
+                                <td class="name">
+                                    {{#if isMobile}}
+                                        {{this.from_user_name}}
+                                    {{else}}
+                                        <a class="btn-link" href="{{objectUrl 'users' this.from_user '-'}}" data-target_user_id="{{this.from_user}}">
+                                            {{this.from_user_name}}
+                                        </a>
+                                    {{/if}}
+                                </td>
                                 <td class="finish-date">{{dateFormat this.created}}</td>
                             </tr>
                         {{/with}}
@@ -27,7 +35,14 @@
                     </tr>
                     {{#each this.approves}}
                             <tr class="approve-item">
-                                <td class="name">{{this.handler_name}}
+                                <td class="name">
+                                    {{#if isMobile}}
+                                        {{this.handler_name}}
+                                    {{else}}
+                                        <a class="btn-link" href="{{objectUrl 'users' this.handler '-'}}" data-target_user_id="{{this.handler}}">
+                                            {{this.handler_name}}
+                                        </a>
+                                    {{/if}}
                                     {{#if isCC this}}
                                         <label class='cc-label'>
                                             <span class="cc-label-title">({{_t "instance_cc_title"}})</span>
@@ -54,7 +69,7 @@
                                         <td class="status {{this.judge}}"></td>
                                     {{else}}
                                         <td class="finish-date">{{dateFormat this.finish_date}}</td>
-                                        <td class="status {{this.judge}}"><span class='{{getApproveStatusIcon this.judge}}'></span><span class="hidden-xs">&nbsp;&nbsp;{{getApproveStatusText this.judge}}</span></td>
+                                        <td class="status {{getApproveJudgeClass this.judge this.auto_submitted}}"><span class='{{getApproveStatusIcon this.judge this.auto_submitted}}'></span><span class="hidden-xs">&nbsp;&nbsp;{{getApproveStatusText this.judge this.auto_submitted}}</span></td>
                                     {{/if}}
                                 {{else}}
                                     <td class="finish-date">
@@ -91,11 +106,6 @@
                             {{#if this.agent}}
                                 <tr class="approve-description">
                                     <td class="description" colspan="3">{{{agentDescription this.user_name}}}</td>
-                                </tr>
-                            {{/if}}
-                            {{#if this.auto_submitted}}
-                                <tr class="approve-description">
-                                    <td class="description red" colspan="3">{{_t "instance_approve_timeout_auto_submitted"}}</td>
                                 </tr>
                             {{/if}}
                     {{/each}}

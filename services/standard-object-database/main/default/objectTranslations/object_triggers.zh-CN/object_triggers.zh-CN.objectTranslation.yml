@@ -1,0 +1,48 @@
+name: object_triggers
+label: 对象触发器
+description: 
+fields:
+  name:
+    label: 名称
+    help: 
+    description: 
+  listenTo:
+    label: 所属对象
+    help: 
+    description: 
+  when:
+    label: 运行时
+    help: 
+    description: 
+    options:
+      - label: "新增记录之前"
+        value: "beforeInsert"
+      - label: "新增记录之后"
+        value: "afterInsert"
+      - label: "修改记录之前"
+        value: "beforeUpdate"
+      - label: "修改记录之后"
+        value: "afterUpdate"
+      - label: "删除记录之前"
+        value: "beforeDelete" 
+      - label: "删除记录之后"
+        value: "afterDelete"
+      - label: "查询记录之前"
+        value: "beforeFind"
+  isEnabled:
+    label: 已启用
+    help: 
+    description: 
+  handler:
+    label: 内容
+    help: 
+    description: 
+  is_system:
+    label: 系统
+    help: 
+    description: 
+listviews:
+  all:
+    label: 所有
+  customize:
+    label: 自定义

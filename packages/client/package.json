@@ -1,11 +1,24 @@
 {
-  "private": true,
+  "private": false,
   "name": "@steedos/client",
-  "version": "1.20.13",
+  "version": "2.7.18-beta.41",
   "description": "client lib for steedos",
-  "main": "index.js",
+  "main": "lib/index.js",
+  "scripts": {
+    "watch": "tsc --watch",
+    "build": "tsc",
+    "test": "mocha test/unit/*.ts"
+  },
+  "devDependencies": {
+    "typescript": "4.6.3"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "license": "MIT",
   "dependencies": {
-    "devextreme": "^18.2.6"
-  }
+    "@steedos/filters": "2.7.18-beta.41",
+    "node-fetch": "^2.6.7"
+  },
+  "gitHead": "0b781a80560d115e8be3c4e39bc2c0c97cc15ce1"
 }

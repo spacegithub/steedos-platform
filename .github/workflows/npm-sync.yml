@@ -1,0 +1,38 @@
+on:
+  workflow_run:
+    workflows: [Release NPM]
+    types:
+      - completed
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [14.x]
+    steps:
+    
+      # checkout branch 2.7
+      - name: Checkout branch 2.7
+        uses: actions/checkout@v2
+        with: 
+          ref: '2.7'
+      
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: "yarn"
+
+      - run: yarn --frozen-lockfile
+
+      - name: Bootstrap platform
+        run: |
+          yarn bootstrap
+
+      - name: Sync cnpm
+        env:
+          CI: true
+        run: |
+          yarn sync
+

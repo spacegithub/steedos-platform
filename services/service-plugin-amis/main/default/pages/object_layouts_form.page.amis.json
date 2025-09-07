@@ -1,0 +1,601 @@
+{
+  "type": "page",
+  "body": [
+    {
+      "type": "service",
+      "body": [
+        {
+          "type": "steedos-object-form",
+          "mode": "edit",
+          "initFetch": true,
+          "className": "bg-white",
+          "id": "u:bb8612f5bbef",
+          "label": "对象表单",
+          "objectApiName": "object_layouts",
+          "recordId": "${recordId}",
+          "enableTabs": true,
+          "debug": false,
+          "fieldsExtend": {
+            "profiles": {
+              "amis": {
+                "type": "select",
+                "name": "profiles",
+                "required": true,
+                "joinValues": false,
+                "extractValue": true,
+                "labelField": "label",
+                "multiple": true,
+                "labelClassName": "text-left",
+                "checkAll": true,
+                "source": {
+                  "method": "post",
+                  "url": "${context.rootUrl}/graphql",
+                  "data": {
+                    "query": "{options:permission_set(filters: [\"type\", \"=\", \"profile\"]){name,label}}"
+                  },
+                  "requestAdaptor": "",
+                  "adaptor": "",
+                  "headers": {
+                    "Authorization": "Bearer ${context.tenantId},${context.authToken}"
+                  }
+                },
+                "valueField": "name",
+                "searchable": true,
+                "id": "u:3c65447a8a6e",
+                "defaultCheckAll": false,
+                "autoComplete": "",
+                "menuTpl": ""
+              }
+            },
+            "buttons": {
+              "label": "",
+              "amis": {
+                "headerToolbar": [
+                  {
+                    "type": "button",
+                    "actionType": "dialog",
+                    "dialog": {
+                      "title": "${'object_layouts.object_layouts_form.button_set' | t}",
+                      "body": [
+                        {
+                          "type": "transfer",
+                          "name": "picked_buttons",
+                          "itemHeight": 40,
+                          "sortable": true,
+                          "source": {
+                            "method": "get",
+                            "url": "${context.rootUrl}/service/api/amis-metadata-objects/objects/${object_name}/actions/options",
+                            "sendOn": "!!this.object_name",
+                            "headers": {
+                              "Authorization": "Bearer ${context.tenantId},${context.authToken}"
+                            },
+                            "cache": 120000
+                          },
+                          "value": "${buttons|pick:button_name|split}",
+                          "searchable": true,
+                          "id": "u:d6e067c40e83",
+                          "joinValues": false,
+                          "extractValue": true
+                        }
+                      ],
+                      "onEvent": {
+                        "confirm": {
+                          "actions": [
+                            {
+                              "actionType": "custom",
+                              "script": "const buttons = [];\nconst picked_buttons = _.cloneDeep(event.data.picked_buttons);\n_.forEach(picked_buttons, function (button) {\n  const table_button = _.find(event.data.buttons, { button_name: button });\n  if (table_button) {\n    buttons.push(table_button)\n  } else {\n    buttons.push({\n      button_name: button\n    })\n  }\n})\ndoAction({\n  \"componentId\": \"object-layout-form\",\n  \"actionType\": \"setValue\",\n  \"args\": {\n    \"value\": {\n      buttons\n    }\n  }\n});"
+                            }
+                          ]
+                        }
+                      },
+                      "type": "dialog",
+                      "id": "u:a0027ac6f8c1",
+                      "closeOnEsc": false,
+                      "closeOnOutside": false,
+                      "showCloseButton": true,
+                      "size": "md"
+                    },
+                    "label": "${'object_layouts.object_layouts_form.button_set' | t}",
+                    "className": "mb-2",
+                    "id": "u:1ac8afc8a9bb"
+                  }
+                ],
+                "addable": false,
+                "draggable": false,
+                "id": "u:1120663b07c6",
+                "dialog": {
+                  "title": "按钮明细"
+                },
+                "columns": [
+                  {
+                    "name": "button_name",
+                    "inlineEditMode": false
+                  },
+                  {
+                    "name": "visible_on"
+                  }
+                ],
+                "enableDialog": false
+              }
+            },
+            "fields": {
+              "amis": {
+                "type": "service",
+                "body": [
+                  {
+                    "name": "fields",
+                    "required": true,
+                    "type": "steedos-input-table",
+                    "fields": [
+                      {
+                        "name": "field_name",
+                        "label": "${'object_layouts.object_layouts_form.fields' | t}",
+                        "type": "select",
+                        "amis": {
+                          "source": "${fields_options}",
+                          "menuTpl": "",
+                          "id": "u:beecbd5b6b69"
+                        },
+                        "id": "u:b95c69a1cd84"
+                      },
+                      {
+                        "name": "is_readonly",
+                        "label": "${'object_layouts.object_layouts_form.readonly' | t}",
+                        "id": "u:5081e6e1af55",
+                        "type": "boolean",
+                        "placeholder": "-"
+                      },
+                      {
+                        "name": "is_required",
+                        "label": "${'object_layouts.object_layouts_form.required' | t}",
+                        "id": "u:e54afb5cc05c",
+                        "type": "boolean",
+                        "placeholder": "-"
+                      },
+                      {
+                        "name": "group",
+                        "label": "${'object_layouts.object_layouts_form.grouping' | t}",
+                        "type": "select",
+                        "amis": {
+                          "className": "m-0",
+                          "source": "${field_groups|pick:group_name}",
+                          "checkAll": false,
+                          "selectFirst": false,
+                          "searchable": true,
+                          "clearable": true,
+                          "id": "u:f75ddc45d296",
+                          "multiple": false,
+                          "mode": "popOver"
+                        },
+                        "id": "u:e532b1949676",
+                        "placeholder": "-"
+                      },
+                      {
+                        "name": "visible_on",
+                        "label": "${'object_layouts.object_layouts_form.visibile_on' | t}",
+                        "breakpoint": "*",
+                        "id": "u:e3618b8b4c52",
+                        "type": "textarea",
+                        "placeholder": "-"
+                      }
+                    ],
+                    "columns": [
+                      {
+                        "name": "field_name",
+                        "inlineEditMode": false
+                      },
+                      {
+                        "name": "is_readonly",
+                        "width": 50
+                      },
+                      {
+                        "name": "is_required",
+                        "width": 50
+                      },
+                      "group",
+                      "visible_on"
+                    ],
+                    "headerToolbar": [
+                      {
+                        "type": "button",
+                        "actionType": "dialog",
+                        "dialog": {
+                          "title": "${'object_layouts.object_layouts_form.field_set' | t}",
+                          "body": [
+                            {
+                              "type": "transfer",
+                              "name": "picked_fields",
+                              "itemHeight": 40,
+                              "sortable": true,
+                              "source": "${fields_options}",
+                              "value": "${fields|pick:field_name|split}",
+                              "joinValues": false,
+                              "extractValue": true,
+                              "searchable": true,
+                              "id": "u:502c4ecd81b6"
+                            }
+                          ],
+                          "onEvent": {
+                            "confirm": {
+                              "actions": [
+                                {
+                                  "actionType": "custom",
+                                  "script": "var fields = [];\nvar picked_fields = _.cloneDeep(event.data.picked_fields);\n\n_.forEach(picked_fields, function (field) {\n  var table_field = _.find(event.data.fields, { field_name: field });\n  if (table_field) {\n    fields.push(table_field);\n  } else {\n    fields.push({\n      field_name: field\n    });\n  }\n});\n\n// 将 fields 分为 group 为空和非空的两部分\nvar groupsPartition = _.partition(fields, function(item) {\n  return !item.group;\n});\nvar emptyGroups = groupsPartition[0];\nvar nonEmptyGroups = groupsPartition[1];\n\n// 创建排序映射\nvar sortOrderMap = _.fromPairs(_.map(event.data.field_groups, function(item, index) {\n  return [item.group_name, index];\n}));\n\n// 对非空 group 的部分进行排序\nvar sortedNonEmptyGroups = _.sortBy(nonEmptyGroups, function(item) {\n  return sortOrderMap[item.group];\n});\n\n// 合并两个数组，空 group 的部分在前\nfields = emptyGroups.concat(sortedNonEmptyGroups);\n\ndoAction({\n  \"componentId\": \"object-layout-form\",\n  \"actionType\": \"setValue\",\n  \"args\": {\n    \"value\": {\n      fields: fields\n    }\n  }\n});\n"
+                                }
+                              ]
+                            }
+                          },
+                          "type": "dialog",
+                          "size": "md",
+                          "id": "u:c405734543e0",
+                          "closeOnEsc": false,
+                          "closeOnOutside": false,
+                          "showCloseButton": true
+                        },
+                        "label": "${'object_layouts.object_layouts_form.field_set' | t}",
+                        "id": "u:853b890ab524",
+                        "className": "mb-2"
+                      },
+                      {
+                        "type": "button",
+                        "actionType": "dialog",
+                        "dialog": {
+                          "title": "${'object_layouts.object_layouts_form.grouping_set' | t}",
+                          "size": "lg",
+                          "body": [
+                            {
+                              "type": "form",
+                              "mode": "normal",
+                              "body": [
+                                {
+                                  "type": "steedos-input-table",
+                                  "name": "field_groups",
+                                  "addable": true,
+                                  "draggable": true,
+                                  "editable": true,
+                                  "showIndex": true,
+                                  "removable": true,
+                                  "inlineEditMode": true,
+                                  "fields": [
+                                    {
+                                      "name": "group_name",
+                                      "type": "text",
+                                      "label": "${'object_layouts.object_layouts_form.group_name' | t}",
+                                      "id": "u:ee2fb813a3e7"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "name": "visible_on",
+                                      "label": "${'object_layouts.object_layouts_form.visible_on' | t}"
+                                    },
+                                    {
+                                      "type": "boolean",
+                                      "name": "collapsed",
+                                      "label": "${'object_layouts.object_layouts_form.collapsed' | t}"
+                                    }
+                                  ],
+                                  "columns": [
+                                    {
+                                      "name": "group_name",
+                                      "inlineEditMode": false
+                                    },
+                                    "visible_on",
+                                    {
+                                      "name": "collapsed",
+                                      "width": 50
+                                    }
+                                  ],
+                                  "id": "u:e9f43ef94d08"
+                                }
+                              ]
+                            }
+                          ],
+                          "onEvent": {
+                            "confirm": {
+                              "actions": [
+                                {
+                                  "actionType": "custom",
+                                  "args": {},
+                                  "componentId": "",
+                                  "script": "var field_groups = _.cloneDeep(event.data.field_groups);\nvar fields = _.cloneDeep(event.data.fields);\n\n// 将数组分为 group 为空和非空的两部分\nvar groupsPartition = _.partition(fields, function(item) {\n    return !item.group;\n});\nvar emptyGroups = groupsPartition[0];\nvar nonEmptyGroups = groupsPartition[1];\n\n// 创建排序映射\nvar sortOrderMap = _.fromPairs(_.map(field_groups, function(item, index) {\n    return [item.group_name, index];\n}));\n\n// 对非空 group 的部分进行排序\nvar sortedNonEmptyGroups = _.sortBy(nonEmptyGroups, function(item) {\n    return sortOrderMap[item.group];\n});\n\n// 合并两个数组，空 group 的部分在前\nfields = emptyGroups.concat(sortedNonEmptyGroups);\n\ndoAction({\n    \"componentId\": \"object-layout-form\",\n    \"actionType\": \"setValue\",\n    \"args\": {\n        \"value\": {\n            field_groups: field_groups,\n            fields: fields\n        }\n    }\n});\n"
+                                }
+                              ]
+                            }
+                          },
+                          "type": "dialog",
+                          "id": "u:e02c8f59216e",
+                          "closeOnEsc": false,
+                          "closeOnOutside": false,
+                          "showCloseButton": true
+                        },
+                        "label": "${'object_layouts.object_layouts_form.grouping_set' | t}",
+                        "id": "u:ec9931ea883c",
+                        "className": "mb-2"
+                      }
+                    ],
+                    "editable": true,
+                    "removable": true,
+                    "showIndex": true,
+                    "id": "u:22121edc42b1",
+                    "amis": {
+                      "columnsTogglable": false
+                    },
+                    "dialog": {
+                      "title": "字段明细",
+                      "onEvent": {
+                        "confirm": {
+                          "actions": [
+                            {
+                              "actionType": "custom",
+                              "script": "var eventForm = event.context.scoped.getComponentById('object-layout-form');\nsetTimeout(function() {\n    var form = eventForm;\n    var data = form && _.clone(form.getData());\n    var fields = data.fields;\n    var field_groups = data.field_groups;\n\n    // 将fields分为 group 为空和非空的两部分\n    var groupsPartition = _.partition(fields, function(item) {\n        return !item.group;\n    });\n    var emptyGroups = groupsPartition[0];\n    var nonEmptyGroups = groupsPartition[1];\n\n    // 创建排序映射\n    var sortOrderMap = _.fromPairs(_.map(field_groups, function(item, index) {\n        return [item.group_name, index];\n    }));\n\n    // 对非空 group 的部分进行排序\n    var sortedNonEmptyGroups = _.sortBy(nonEmptyGroups, function(item) {\n        return sortOrderMap[item.group];\n    });\n\n    // 合并两个数组，空 group 的部分在前\n    fields = emptyGroups.concat(sortedNonEmptyGroups);\n    form.setValues({ fields: fields });\n}, 500);"
+                            }
+                          ]
+                        },
+                        "cancel": {
+                          "actions": [
+                            {
+                              "actionType": "custom",
+                              "script": "var form = event.context.scoped.getComponentById('object-layout-form');\nvar data = form && _.clone(form.getData());\nvar fields = data.fields;\nvar field_groups = data.field_groups;\n\n// 将 fields 分为 group 为空和非空的两部分\nvar groupsPartition = _.partition(fields, function(item) {\n    return !item.group;\n});\nvar emptyGroups = groupsPartition[0];\nvar nonEmptyGroups = groupsPartition[1];\n\n// 创建排序映射\nvar sortOrderMap = _.fromPairs(_.map(field_groups, function(item, index) {\n    return [item.group_name, index];\n}));\n\n// 对非空 group 的部分进行排序\nvar sortedNonEmptyGroups = _.sortBy(nonEmptyGroups, function(item) {\n    return sortOrderMap[item.group];\n});\n\n// 合并两个数组，空 group 的部分在前\nfields = emptyGroups.concat(sortedNonEmptyGroups);\nform.setValues({fields: fields});"
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    "enableDialog": false
+                  }
+                ],
+                "id": "u:ac5b7818b88f",
+                "affixFooter": false,
+                "api": {
+                  "method": "get",
+                  "url": "${context.rootUrl}/service/api/amis-metadata-objects/objects/${object_name}/fields/layout_options",
+                  "adaptor": "let data = payload.data;data.fields_options = data.options;data.field_groups_options = lodash.uniq(lodash.compact(lodash.map(data.options, \"group\"))) || [];delete data.options;payload.data = data; return payload;",
+                  "sendOn": "!!this.object_name",
+                  "data": null,
+                  "headers": {
+                    "Authorization": "Bearer ${context.tenantId},${context.authToken}"
+                  }
+                },
+                "className": "col-span-2 m-0",
+                "placeholder": "-",
+                "onEvent": {
+                  "fetchInited": {
+                    "actions": [
+                      {
+                        "actionType": "custom",
+                        "script": "const mixingGroupsFromFields = function (input, formData) {  const groupsOptions = input.field_groups_options;  const groups = formData.field_groups || []; const object_field_groups = formData.object_field_groups || []; const groupsForMixing = groupsOptions.map(function (item) {    return {      group_name: item    }  });  const mixedGroups = lodash.unionBy(groups, object_field_groups, groupsForMixing, \"group_name\");  return {    field_groups: mixedGroups  }};const eventData = event.data;doAction({  actionType: 'setValue',  componentId: \"object-layout-form\",  args: {    value: mixingGroupsFromFields(eventData, context.props.data)  }});"
+                      }
+                    ]
+                  }
+                },
+                "messages": {}
+              }
+            },
+            "related_lists": {
+              "amis": {
+                "type": "service",
+                "id": "u:dbadaff47153",
+                "api": {
+                  "method": "get",
+                  "url": "${context.rootUrl}/service/api/amis-metadata-objects/objects/${object_name}/relatedLists/options",
+                  "sendOn": "!!this.object_name",
+                  "adaptor": "let data = payload.data;data.related_lists_options = data.options;delete data.options;payload.data = data;return payload;",
+                  "headers": {
+                    "Authorization": "Bearer ${context.tenantId},${context.authToken}"
+                  }
+                },
+                "className": "col-span-2 m-0",
+                "affixFooter": false,
+                "body": [
+                  {
+                    "name": "related_lists",
+                    "type": "steedos-input-table",
+                    "editable": true,
+                    "removable": true,
+                    "draggable": false,
+                    "showIndex": true,
+                    "columns": [
+                      "related_field_fullname",
+                      "label",
+                      "field_names",
+                      "visible_on"
+                    ],
+                    "fields": [
+                      {
+                        "name": "related_field_fullname",
+                        "label": "${'object_layouts.object_layouts_form.related_list_name' | t}",
+                        "type": "select",
+                        "amis": {
+                          "source": "${related_lists_options}",
+                          "menuTpl": "",
+                          "id": "u:beecbd5b6b69"
+                        },
+                        "id": "u:5204fc0fbe1c"
+                      },
+                      {
+                        "name": "label",
+                        "label": "${'object_layouts.object_layouts_form.related_list_label' | t}",
+                        "type": "text",
+                        "id": "u:1267e4351d66",
+                        "placeholder": "-"
+                      },
+                      {
+                        "name": "field_names",
+                        "label": "${'object_layouts.object_layouts_form.field_names' | t}",
+                        "type": "select",
+                        "amis": {
+                          "source": {
+                            "method": "get",
+                            "url": "/service/api/amis-metadata-objects/objects/${related_field_fullname|split:.|first}/fields/options",
+                            "cache": 60000,
+                            "headers": {
+                              "Authorization": "Bearer ${context.tenantId},${context.authToken}"
+                            }
+                          },
+                          "id": "u:e2ece172d739"
+                        },
+                        "id": "u:ce65d4020107",
+                        "placeholder": "-"
+                      },
+                      {
+                        "name": "sort_field_name",
+                        "label": "${'object_layouts.object_layouts_form.sort_field_name' | t}",
+                        "type": "select",
+                        "amis": {
+                          "source": {
+                            "method": "get",
+                            "url": "/service/api/amis-metadata-objects/objects/${related_field_fullname|split:.|first}/fields/options",
+                            "cache": 60000,
+                            "headers": {
+                              "Authorization": "Bearer ${context.tenantId},${context.authToken}"
+                            }
+                          }
+                        },
+                        "id": "u:3dbee6a855c4",
+                        "multiple": true
+                      },
+                      {
+                        "name": "sort_order",
+                        "label": "${'object_layouts.object_layouts_form.sort_order' | t}",
+                        "type": "select",
+                        "amis": {
+                          "source": "${sort_order_options}"
+                        },
+                        "id": "u:13cb3d304615"
+                      },
+                      {
+                        "name": "filters",
+                        "label": "${'object_layouts.object_layouts_form.filters_rule' | t}",
+                        "type": "code",
+                        "amis": {
+                          "language": "javascript",
+                          "description": "${'object_layouts.object_layouts_form.filters_rule_description' | t}",
+                          "minRows": 3,
+                          "maxRows": 20
+                        },
+                        "breakpoint": "*",
+                        "id": "u:e4c367804b67"
+                      },
+                      {
+                        "name": "visible_on",
+                        "label": "${'object_layouts.object_layouts_form.visibile_on' | t}",
+                        "type": "textarea",
+                        "breakpoint": "*",
+                        "id": "u:1e1dc52d7c33"
+                      },
+                      {
+                        "name": "page_size",
+                        "label": "${'object_layouts.object_layouts_form.page_size' | t}",
+                        "type": "number",
+                        "breakpoint": "*",
+                        "id": "u:f9bbd9567bbd"
+                      }
+                    ],
+                    "headerToolbar": [
+                      {
+                        "type": "button",
+                        "actionType": "dialog",
+                        "dialog": {
+                          "title": "${'object_layouts.object_layouts_form.set_related_list' | t}",
+                          "body": [
+                            {
+                              "type": "transfer",
+                              "itemHeight": 40,
+                              "name": "picked_related_lists",
+                              "sortable": true,
+                              "source": "${related_lists_options}",
+                              "value": "${related_lists|pick:related_field_fullname | split}",
+                              "searchable": true,
+                              "id": "u:ab6a6c9c8677",
+                              "joinValues": false,
+                              "extractValue": true
+                            }
+                          ],
+                          "onEvent": {
+                            "confirm": {
+                              "actions": [
+                                {
+                                  "actionType": "custom",
+                                  "script": "const related_lists = [];\nconst picked_related_lists = _.cloneDeep(event.data.picked_related_lists);\n_.forEach(picked_related_lists, function (related_list) {\n  const table_related_list = _.find(event.data.related_lists, { related_field_fullname: related_list });\n  if (table_related_list) {\n    related_lists.push(table_related_list)\n  } else {\n    related_lists.push({\n      related_field_fullname: related_list,sort_order: \"asc\"\n    })\n  }\n})\ndoAction({\n  \"componentId\": \"object-layout-form\",\n  \"actionType\": \"setValue\",\n  \"args\": {\n    \"value\": {\n      related_lists\n    }\n  }\n});"
+                                }
+                              ]
+                            }
+                          },
+                          "type": "dialog",
+                          "size": "md",
+                          "id": "u:3663990f226a",
+                          "closeOnEsc": false,
+                          "closeOnOutside": false,
+                          "showCloseButton": true
+                        },
+                        "label": "${'object_layouts.object_layouts_form.set_related_list' | t}",
+                        "id": "u:b9a5d3b611d7",
+                        "className": "mb-2"
+                      }
+                    ],
+                    "id": "u:95aea10231d3",
+                    "amis": {
+                      "columnsTogglable": false
+                    },
+                    "dialog": {
+                      "title": "子表明细"
+                    }
+                  }
+                ],
+                "messages": {}
+              }
+            },
+            "field_groups": {
+              "hidden": true
+            }
+          },
+          "form": {
+            "id": "object-layout-form",
+            "data": {
+              "sort_order_options": [
+                {
+                  "label": "${'object_layouts.object_layouts_form.positive_order' | t}",
+                  "value": "asc"
+                },
+                {
+                  "label": "${'object_layouts.object_layouts_form.reverse_order' | t}",
+                  "value": "desc"
+                }
+              ]
+            }
+          },
+          "apiRequestAdaptor": "delete formData.created;\ndelete formData.created_by;\ndelete formData.modified;\ndelete formData.modified_by;\ndelete formData._display;\ndelete formData.sort_order_options;\ndelete formData.buttons_options;\ndelete formData.fields_options;\ndelete formData.field_groups_options;\ndelete formData.related_lists_options;\ndelete formData.related_object_fields_options;\ndelete formData.isLookup;\nquery = `mutation{record: object_layouts__insert(doc: {__saveData}){_id}}`;\nif (formData.recordId) {\n  query = `mutation{record: object_layouts__update(id: \"` + formData.recordId + `\", doc: {__saveData}){_id}}`;\n};\ndelete formData._id;\n__saveData = JSON.stringify(JSON.stringify(formData));\n\napi.data = { query: query.replace('{__saveData}', __saveData) };\nreturn api;",
+          "tabsMode": "line"
+        }
+      ],
+      "id": "u:306afc3d4713",
+      "api": {
+        "method": "post",
+        "url": "${context.rootUrl}/graphql",
+        "dataType": "json",
+        "headers": {
+          "Authorization": "Bearer ${context.tenantId},${context.authToken}"
+        },
+        "data": {
+          "query": "{object_field_groups:objects(filters: [[\"name\",\"=\",\"${_master.record.name}\"]]){_id,name,field_groups}}"
+        },
+        "requestAdaptor": "",
+        "adaptor": "var field_groups = payload.data.object_field_groups;\nfield_groups = field_groups && field_groups.length > 0 && field_groups[0].field_groups;\nreturn payload = {\n  data: {\n    object_field_groups: field_groups\n  }\n}",
+        "messages": {}
+      },
+      "messages": {}
+    }
+  ],
+  "regions": [
+    "body"
+  ],
+  "data": {
+    "objectName": "object_layouts"
+  },
+  "id": "u:3b0de7e88def",
+  "bodyClassName": "p-0",
+  "name": "page_edit_${recordId}",
+  "initApi": null,
+  "initFetch": null,
+  "className": "page-form-object_layouts"
+}

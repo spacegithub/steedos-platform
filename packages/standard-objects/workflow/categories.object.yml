@@ -1,38 +1,29 @@
 name: categories
-icon: metrics
+icon: hierarchy
 label: Workflow Category
+hidden: true
+version: 2
+enable_dataloader: false
 fields:
   name:
     type: text
     label: Name
     name: name
     searchable: true
-  sort_no:
-    label: Sort Number
-    type: number
-    name: sort_no
+    required: true
+    filterable: true
   app:
     label: Apps
     type: lookup
     reference_to: apps
-    optionsFunction: !<tag:yaml.org,2002:js/function> |-
-      function () {
-              var _options;
-
-              _options = [];
-
-              _.forEach(Creator.Apps, function (o, k) {
-                return _options.push({
-                  label: o.name,
-                  value: k,
-                  icon: o.icon_slds
-                });
-              });
-
-              return _options;
-            }
+    reference_to_field: code
     name: app
     filterable: true
+    required: false
+  sort_no:
+    label: Sort Number
+    type: number
+    name: sort_no
 list_views:
   all:
     label: All Workflow Categories
@@ -41,6 +32,9 @@ list_views:
       - name
       - sort_no
       - app
+    sort:
+      - field_name: sort_no
+        order: asc
 permission_set:
   user:
     allowCreate: false

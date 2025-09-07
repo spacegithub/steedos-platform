@@ -6,116 +6,115 @@ var global = Package.meteor.global;
 var meteorEnv = Package.meteor.meteorEnv;
 var ECMAScript = Package.ecmascript.ECMAScript;
 var meteorInstall = Package.modules.meteorInstall;
-var meteorBabelHelpers = Package['babel-runtime'].meteorBabelHelpers;
 var Promise = Package.promise.Promise;
 
-var require = meteorInstall({"node_modules":{"meteor":{"tmeasday:check-npm-versions":{"check-npm-versions.js":function(require,exports,module){
+var require = meteorInstall({"node_modules":{"meteor":{"tmeasday:check-npm-versions":{"check-npm-versions.js":function module(require,exports,module){
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                                                                                                                //
-// packages/tmeasday_check-npm-versions/check-npm-versions.js                                                     //
-//                                                                                                                //
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-                                                                                                                  //
-const module1 = module;
-module1.export({
-  checkNpmVersions: () => checkNpmVersions
-});
-let semver;
-module1.link("semver", {
-  default(v) {
-    semver = v;
-  }
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                                                                                                                  //
+// packages/tmeasday_check-npm-versions/check-npm-versions.js                                                       //
+//                                                                                                                  //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+                                                                                                                    //
+!function (module1) {
+  module1.export({
+    checkNpmVersions: () => checkNpmVersions
+  });
+  let semver;
+  module1.link("semver", {
+    default(v) {
+      semver = v;
+    }
 
-}, 0);
+  }, 0);
 
-// Returns:
-//   - true      if a version of the package in the range is installed
-//   - false     if no version is installed
-//   - version#  if incompatible version is installed
-const compatibleVersionIsInstalled = (name, range) => {
-  try {
-    const installedVersion = require(`${name}/package.json`).version;
+  // Returns:
+  //   - true      if a version of the package in the range is installed
+  //   - false     if no version is installed
+  //   - version#  if incompatible version is installed
+  const compatibleVersionIsInstalled = (name, range) => {
+    try {
+      const installedVersion = require("".concat(name, "/package.json")).version;
 
-    if (semver.satisfies(installedVersion, range)) {
+      if (semver.satisfies(installedVersion, range)) {
+        return true;
+      } else {
+        return installedVersion;
+      }
+    } catch (e) {
+      // XXX add something to the tool to make this more reliable
+      const message = e.toString(); // One message comes out of the install npm package the other from npm directly
+
+      if (message.match("Cannot find module") || message.match("Can't find npm module")) {
+        return false;
+      } else {
+        throw e;
+      }
+    }
+  };
+
+  const checkNpmVersions = (packages, packageName) => {
+    if (!process.env.CREATOR_NODE_ENV == 'development') {
+      return;
+    }
+
+    const failures = {};
+    Object.keys(packages).forEach(name => {
+      const range = packages[name];
+      const failure = compatibleVersionIsInstalled(name, range);
+
+      if (failure !== true) {
+        failures[name] = failure;
+      }
+    });
+
+    if (Object.keys(failures).length === 0) {
       return true;
-    } else {
-      return installedVersion;
     }
-  } catch (e) {
-    // XXX add something to the tool to make this more reliable
-    const message = e.toString(); // One message comes out of the install npm package the other from npm directly
 
-    if (message.match("Cannot find module") || message.match("Can't find npm module")) {
-      return false;
-    } else {
-      throw e;
-    }
-  }
-};
+    const errors = [];
+    Object.keys(failures).forEach(name => {
+      const installed = failures[name];
+      const requirement = "".concat(name, "@").concat(packages[name]);
 
-const checkNpmVersions = (packages, packageName) => {
-  const failures = {};
-  Object.keys(packages).forEach(name => {
-    const range = packages[name];
-    const failure = compatibleVersionIsInstalled(name, range);
+      if (installed) {
+        errors.push(" - ".concat(name, "@").concat(installed, " installed, ").concat(requirement, " needed"));
+      } else {
+        errors.push(" - ".concat(name, "@").concat(packages[name], " not installed."));
+      }
+    });
+    const qualifier = packageName ? "(for ".concat(packageName, ") ") : '';
+    console.warn("WARNING: npm peer requirements ".concat(qualifier, "not installed:\n").concat(errors.join('\n'), "\n\nRead more about installing npm peer dependencies:\n  http://guide.meteor.com/using-packages.html#peer-npm-dependencies\n"));
+  };
+}.call(this, module);
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    if (failure !== true) {
-      failures[name] = failure;
-    }
-  });
+},"node_modules":{"semver":{"package.json":function module(require,exports,module){
 
-  if (Object.keys(failures).length === 0) {
-    return true;
-  }
-
-  const errors = [];
-  Object.keys(failures).forEach(name => {
-    const installed = failures[name];
-    const requirement = `${name}@${packages[name]}`;
-
-    if (installed) {
-      errors.push(` - ${name}@${installed} installed, ${requirement} needed`);
-    } else {
-      errors.push(` - ${name}@${packages[name]} not installed.`);
-    }
-  });
-  const qualifier = packageName ? `(for ${packageName}) ` : '';
-  console.warn(`WARNING: npm peer requirements ${qualifier}not installed:
-${errors.join('\n')}
-
-Read more about installing npm peer dependencies:
-  http://guide.meteor.com/using-packages.html#peer-npm-dependencies
-`);
-};
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-},"node_modules":{"semver":{"package.json":function(require,exports,module){
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                                                                                                                //
-// node_modules/meteor/tmeasday_check-npm-versions/node_modules/semver/package.json                               //
-//                                                                                                                //
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-                                                                                                                  //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                                                                                                                  //
+// node_modules/meteor/tmeasday_check-npm-versions/node_modules/semver/package.json                                 //
+//                                                                                                                  //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+                                                                                                                    //
 module.exports = {
   "name": "semver",
   "version": "5.1.0",
   "main": "semver.js"
 };
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-},"semver.js":function(require,exports,module){
+},"semver.js":function module(require,exports,module){
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                                                                                                                //
-// node_modules/meteor/tmeasday_check-npm-versions/node_modules/semver/semver.js                                  //
-//                                                                                                                //
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-                                                                                                                  //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                                                                                                                  //
+// node_modules/meteor/tmeasday_check-npm-versions/node_modules/semver/semver.js                                    //
+//                                                                                                                  //
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+                                                                                                                    //
 module.useNode();
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 }}}}}}},{
   "extensions": [
@@ -132,4 +131,4 @@ Package._define("tmeasday:check-npm-versions", exports);
 })();
 
 //# sourceURL=meteor://💻app/packages/tmeasday_check-npm-versions.js
-//# sourceMappingURL=data:application/json;charset=utf8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbIm1ldGVvcjovL/CfkrthcHAvcGFja2FnZXMvdG1lYXNkYXk6Y2hlY2stbnBtLXZlcnNpb25zL2NoZWNrLW5wbS12ZXJzaW9ucy5qcyJdLCJuYW1lcyI6WyJtb2R1bGUxIiwibW9kdWxlIiwiZXhwb3J0IiwiY2hlY2tOcG1WZXJzaW9ucyIsInNlbXZlciIsImxpbmsiLCJkZWZhdWx0IiwidiIsImNvbXBhdGlibGVWZXJzaW9uSXNJbnN0YWxsZWQiLCJuYW1lIiwicmFuZ2UiLCJpbnN0YWxsZWRWZXJzaW9uIiwicmVxdWlyZSIsInZlcnNpb24iLCJzYXRpc2ZpZXMiLCJlIiwibWVzc2FnZSIsInRvU3RyaW5nIiwibWF0Y2giLCJwYWNrYWdlcyIsInBhY2thZ2VOYW1lIiwiZmFpbHVyZXMiLCJPYmplY3QiLCJrZXlzIiwiZm9yRWFjaCIsImZhaWx1cmUiLCJsZW5ndGgiLCJlcnJvcnMiLCJpbnN0YWxsZWQiLCJyZXF1aXJlbWVudCIsInB1c2giLCJxdWFsaWZpZXIiLCJjb25zb2xlIiwid2FybiIsImpvaW4iXSwibWFwcGluZ3MiOiI7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7QUFBQSxNQUFNQSxPQUFPLEdBQUNDLE1BQWQ7QUFBcUJELE9BQU8sQ0FBQ0UsTUFBUixDQUFlO0FBQUNDLGtCQUFnQixFQUFDLE1BQUlBO0FBQXRCLENBQWY7QUFBd0QsSUFBSUMsTUFBSjtBQUFXSixPQUFPLENBQUNLLElBQVIsQ0FBYSxRQUFiLEVBQXNCO0FBQUNDLFNBQU8sQ0FBQ0MsQ0FBRCxFQUFHO0FBQUNILFVBQU0sR0FBQ0csQ0FBUDtBQUFTOztBQUFyQixDQUF0QixFQUE2QyxDQUE3Qzs7QUFFeEY7QUFDQTtBQUNBO0FBQ0E7QUFDQSxNQUFNQyw0QkFBNEIsR0FBRyxDQUFDQyxJQUFELEVBQU9DLEtBQVAsS0FBaUI7QUFDcEQsTUFBSTtBQUNGLFVBQU1DLGdCQUFnQixHQUFHQyxPQUFPLENBQUUsR0FBRUgsSUFBSyxlQUFULENBQVAsQ0FBZ0NJLE9BQXpEOztBQUNBLFFBQUlULE1BQU0sQ0FBQ1UsU0FBUCxDQUFpQkgsZ0JBQWpCLEVBQW1DRCxLQUFuQyxDQUFKLEVBQStDO0FBQzdDLGFBQU8sSUFBUDtBQUNELEtBRkQsTUFFTztBQUNMLGFBQU9DLGdCQUFQO0FBQ0Q7QUFDRixHQVBELENBT0UsT0FBT0ksQ0FBUCxFQUFVO0FBQ1Y7QUFDQSxVQUFNQyxPQUFPLEdBQUdELENBQUMsQ0FBQ0UsUUFBRixFQUFoQixDQUZVLENBR1Y7O0FBQ0EsUUFBSUQsT0FBTyxDQUFDRSxLQUFSLENBQWMsb0JBQWQsS0FBdUNGLE9BQU8sQ0FBQ0UsS0FBUixDQUFjLHVCQUFkLENBQTNDLEVBQW1GO0FBQ2pGLGFBQU8sS0FBUDtBQUNELEtBRkQsTUFFTztBQUNMLFlBQU1ILENBQU47QUFDRDtBQUNGO0FBQ0YsQ0FsQkQ7O0FBb0JPLE1BQU1aLGdCQUFnQixHQUFHLENBQUNnQixRQUFELEVBQVdDLFdBQVgsS0FBMkI7QUFDekQsUUFBTUMsUUFBUSxHQUFHLEVBQWpCO0FBRUFDLFFBQU0sQ0FBQ0MsSUFBUCxDQUFZSixRQUFaLEVBQXNCSyxPQUF0QixDQUErQmYsSUFBRCxJQUFVO0FBQ3RDLFVBQU1DLEtBQUssR0FBR1MsUUFBUSxDQUFDVixJQUFELENBQXRCO0FBQ0EsVUFBTWdCLE9BQU8sR0FBR2pCLDRCQUE0QixDQUFDQyxJQUFELEVBQU9DLEtBQVAsQ0FBNUM7O0FBRUEsUUFBSWUsT0FBTyxLQUFLLElBQWhCLEVBQXNCO0FBQ3BCSixjQUFRLENBQUNaLElBQUQsQ0FBUixHQUFpQmdCLE9BQWpCO0FBQ0Q7QUFDRixHQVBEOztBQVNBLE1BQUlILE1BQU0sQ0FBQ0MsSUFBUCxDQUFZRixRQUFaLEVBQXNCSyxNQUF0QixLQUFpQyxDQUFyQyxFQUF3QztBQUN0QyxXQUFPLElBQVA7QUFDRDs7QUFFRCxRQUFNQyxNQUFNLEdBQUcsRUFBZjtBQUVBTCxRQUFNLENBQUNDLElBQVAsQ0FBWUYsUUFBWixFQUFzQkcsT0FBdEIsQ0FBK0JmLElBQUQsSUFBVTtBQUN0QyxVQUFNbUIsU0FBUyxHQUFHUCxRQUFRLENBQUNaLElBQUQsQ0FBMUI7QUFDQSxVQUFNb0IsV0FBVyxHQUFJLEdBQUVwQixJQUFLLElBQUdVLFFBQVEsQ0FBQ1YsSUFBRCxDQUFPLEVBQTlDOztBQUVBLFFBQUltQixTQUFKLEVBQWU7QUFDYkQsWUFBTSxDQUFDRyxJQUFQLENBQWEsTUFBS3JCLElBQUssSUFBR21CLFNBQVUsZUFBY0MsV0FBWSxTQUE5RDtBQUNELEtBRkQsTUFFTztBQUNMRixZQUFNLENBQUNHLElBQVAsQ0FBYSxNQUFLckIsSUFBSyxJQUFHVSxRQUFRLENBQUNWLElBQUQsQ0FBTyxpQkFBekM7QUFDRDtBQUNGLEdBVEQ7QUFXQSxRQUFNc0IsU0FBUyxHQUFHWCxXQUFXLEdBQUksUUFBT0EsV0FBWSxJQUF2QixHQUE2QixFQUExRDtBQUNBWSxTQUFPLENBQUNDLElBQVIsQ0FBYyxrQ0FBaUNGLFNBQVU7RUFDekRKLE1BQU0sQ0FBQ08sSUFBUCxDQUFZLElBQVosQ0FBa0I7Ozs7Q0FEbEI7QUFNRCxDQXBDTSxDIiwiZmlsZSI6Ii9wYWNrYWdlcy90bWVhc2RheV9jaGVjay1ucG0tdmVyc2lvbnMuanMiLCJzb3VyY2VzQ29udGVudCI6WyJpbXBvcnQgc2VtdmVyIGZyb20gJ3NlbXZlcic7XG5cbi8vIFJldHVybnM6XG4vLyAgIC0gdHJ1ZSAgICAgIGlmIGEgdmVyc2lvbiBvZiB0aGUgcGFja2FnZSBpbiB0aGUgcmFuZ2UgaXMgaW5zdGFsbGVkXG4vLyAgIC0gZmFsc2UgICAgIGlmIG5vIHZlcnNpb24gaXMgaW5zdGFsbGVkXG4vLyAgIC0gdmVyc2lvbiMgIGlmIGluY29tcGF0aWJsZSB2ZXJzaW9uIGlzIGluc3RhbGxlZFxuY29uc3QgY29tcGF0aWJsZVZlcnNpb25Jc0luc3RhbGxlZCA9IChuYW1lLCByYW5nZSkgPT4ge1xuICB0cnkge1xuICAgIGNvbnN0IGluc3RhbGxlZFZlcnNpb24gPSByZXF1aXJlKGAke25hbWV9L3BhY2thZ2UuanNvbmApLnZlcnNpb247XG4gICAgaWYgKHNlbXZlci5zYXRpc2ZpZXMoaW5zdGFsbGVkVmVyc2lvbiwgcmFuZ2UpKSB7XG4gICAgICByZXR1cm4gdHJ1ZTtcbiAgICB9IGVsc2Uge1xuICAgICAgcmV0dXJuIGluc3RhbGxlZFZlcnNpb247XG4gICAgfVxuICB9IGNhdGNoIChlKSB7XG4gICAgLy8gWFhYIGFkZCBzb21ldGhpbmcgdG8gdGhlIHRvb2wgdG8gbWFrZSB0aGlzIG1vcmUgcmVsaWFibGVcbiAgICBjb25zdCBtZXNzYWdlID0gZS50b1N0cmluZygpO1xuICAgIC8vIE9uZSBtZXNzYWdlIGNvbWVzIG91dCBvZiB0aGUgaW5zdGFsbCBucG0gcGFja2FnZSB0aGUgb3RoZXIgZnJvbSBucG0gZGlyZWN0bHlcbiAgICBpZiAobWVzc2FnZS5tYXRjaChcIkNhbm5vdCBmaW5kIG1vZHVsZVwiKSB8fCBtZXNzYWdlLm1hdGNoKFwiQ2FuJ3QgZmluZCBucG0gbW9kdWxlXCIpKSB7XG4gICAgICByZXR1cm4gZmFsc2U7XG4gICAgfSBlbHNlIHtcbiAgICAgIHRocm93IGU7XG4gICAgfVxuICB9XG59O1xuXG5leHBvcnQgY29uc3QgY2hlY2tOcG1WZXJzaW9ucyA9IChwYWNrYWdlcywgcGFja2FnZU5hbWUpID0+IHtcbiAgY29uc3QgZmFpbHVyZXMgPSB7fTtcblxuICBPYmplY3Qua2V5cyhwYWNrYWdlcykuZm9yRWFjaCgobmFtZSkgPT4ge1xuICAgIGNvbnN0IHJhbmdlID0gcGFja2FnZXNbbmFtZV07XG4gICAgY29uc3QgZmFpbHVyZSA9IGNvbXBhdGlibGVWZXJzaW9uSXNJbnN0YWxsZWQobmFtZSwgcmFuZ2UpO1xuXG4gICAgaWYgKGZhaWx1cmUgIT09IHRydWUpIHtcbiAgICAgIGZhaWx1cmVzW25hbWVdID0gZmFpbHVyZTtcbiAgICB9XG4gIH0pO1xuXG4gIGlmIChPYmplY3Qua2V5cyhmYWlsdXJlcykubGVuZ3RoID09PSAwKSB7XG4gICAgcmV0dXJuIHRydWU7XG4gIH1cblxuICBjb25zdCBlcnJvcnMgPSBbXTtcblxuICBPYmplY3Qua2V5cyhmYWlsdXJlcykuZm9yRWFjaCgobmFtZSkgPT4ge1xuICAgIGNvbnN0IGluc3RhbGxlZCA9IGZhaWx1cmVzW25hbWVdO1xuICAgIGNvbnN0IHJlcXVpcmVtZW50ID0gYCR7bmFtZX1AJHtwYWNrYWdlc1tuYW1lXX1gO1xuXG4gICAgaWYgKGluc3RhbGxlZCkge1xuICAgICAgZXJyb3JzLnB1c2goYCAtICR7bmFtZX1AJHtpbnN0YWxsZWR9IGluc3RhbGxlZCwgJHtyZXF1aXJlbWVudH0gbmVlZGVkYCk7XG4gICAgfSBlbHNlIHtcbiAgICAgIGVycm9ycy5wdXNoKGAgLSAke25hbWV9QCR7cGFja2FnZXNbbmFtZV19IG5vdCBpbnN0YWxsZWQuYCk7XG4gICAgfVxuICB9KTtcblxuICBjb25zdCBxdWFsaWZpZXIgPSBwYWNrYWdlTmFtZSA/IGAoZm9yICR7cGFja2FnZU5hbWV9KSBgIDogJyc7XG4gIGNvbnNvbGUud2FybihgV0FSTklORzogbnBtIHBlZXIgcmVxdWlyZW1lbnRzICR7cXVhbGlmaWVyfW5vdCBpbnN0YWxsZWQ6XG4ke2Vycm9ycy5qb2luKCdcXG4nKX1cblxuUmVhZCBtb3JlIGFib3V0IGluc3RhbGxpbmcgbnBtIHBlZXIgZGVwZW5kZW5jaWVzOlxuICBodHRwOi8vZ3VpZGUubWV0ZW9yLmNvbS91c2luZy1wYWNrYWdlcy5odG1sI3BlZXItbnBtLWRlcGVuZGVuY2llc1xuYCk7XG59O1xuIl19
+//# sourceMappingURL=data:application/json;charset=utf8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbIm1ldGVvcjovL/CfkrthcHAvcGFja2FnZXMvdG1lYXNkYXk6Y2hlY2stbnBtLXZlcnNpb25zL2NoZWNrLW5wbS12ZXJzaW9ucy5qcyJdLCJuYW1lcyI6WyJtb2R1bGUxIiwiZXhwb3J0IiwiY2hlY2tOcG1WZXJzaW9ucyIsInNlbXZlciIsImxpbmsiLCJkZWZhdWx0IiwidiIsImNvbXBhdGlibGVWZXJzaW9uSXNJbnN0YWxsZWQiLCJuYW1lIiwicmFuZ2UiLCJpbnN0YWxsZWRWZXJzaW9uIiwicmVxdWlyZSIsInZlcnNpb24iLCJzYXRpc2ZpZXMiLCJlIiwibWVzc2FnZSIsInRvU3RyaW5nIiwibWF0Y2giLCJwYWNrYWdlcyIsInBhY2thZ2VOYW1lIiwicHJvY2VzcyIsImVudiIsIkNSRUFUT1JfTk9ERV9FTlYiLCJmYWlsdXJlcyIsIk9iamVjdCIsImtleXMiLCJmb3JFYWNoIiwiZmFpbHVyZSIsImxlbmd0aCIsImVycm9ycyIsImluc3RhbGxlZCIsInJlcXVpcmVtZW50IiwicHVzaCIsInF1YWxpZmllciIsImNvbnNvbGUiLCJ3YXJuIiwiam9pbiJdLCJtYXBwaW5ncyI6Ijs7Ozs7Ozs7Ozs7Ozs7Ozs7OztBQUFBQSxTQUFPLENBQUNDLE1BQVIsQ0FBZTtBQUFDQyxvQkFBZ0IsRUFBQyxNQUFJQTtBQUF0QixHQUFmO0FBQXdELE1BQUlDLE1BQUo7QUFBV0gsU0FBTyxDQUFDSSxJQUFSLENBQWEsUUFBYixFQUFzQjtBQUFDQyxXQUFPLENBQUNDLENBQUQsRUFBRztBQUFDSCxZQUFNLEdBQUNHLENBQVA7QUFBUzs7QUFBckIsR0FBdEIsRUFBNkMsQ0FBN0M7O0FBRW5FO0FBQ0E7QUFDQTtBQUNBO0FBQ0EsUUFBTUMsNEJBQTRCLEdBQUcsQ0FBQ0MsSUFBRCxFQUFPQyxLQUFQLEtBQWlCO0FBQ3BELFFBQUk7QUFDRixZQUFNQyxnQkFBZ0IsR0FBR0MsT0FBTyxXQUFJSCxJQUFKLG1CQUFQLENBQWdDSSxPQUF6RDs7QUFDQSxVQUFJVCxNQUFNLENBQUNVLFNBQVAsQ0FBaUJILGdCQUFqQixFQUFtQ0QsS0FBbkMsQ0FBSixFQUErQztBQUM3QyxlQUFPLElBQVA7QUFDRCxPQUZELE1BRU87QUFDTCxlQUFPQyxnQkFBUDtBQUNEO0FBQ0YsS0FQRCxDQU9FLE9BQU9JLENBQVAsRUFBVTtBQUNWO0FBQ0EsWUFBTUMsT0FBTyxHQUFHRCxDQUFDLENBQUNFLFFBQUYsRUFBaEIsQ0FGVSxDQUdWOztBQUNBLFVBQUlELE9BQU8sQ0FBQ0UsS0FBUixDQUFjLG9CQUFkLEtBQXVDRixPQUFPLENBQUNFLEtBQVIsQ0FBYyx1QkFBZCxDQUEzQyxFQUFtRjtBQUNqRixlQUFPLEtBQVA7QUFDRCxPQUZELE1BRU87QUFDTCxjQUFNSCxDQUFOO0FBQ0Q7QUFDRjtBQUNGLEdBbEJEOztBQW9CTyxRQUFNWixnQkFBZ0IsR0FBRyxDQUFDZ0IsUUFBRCxFQUFXQyxXQUFYLEtBQTJCO0FBQ3pELFFBQUksQ0FBQ0MsT0FBTyxDQUFDQyxHQUFSLENBQVlDLGdCQUFiLElBQWlDLGFBQXJDLEVBQW9EO0FBQ2xEO0FBQ0Q7O0FBQ0QsVUFBTUMsUUFBUSxHQUFHLEVBQWpCO0FBRUFDLFVBQU0sQ0FBQ0MsSUFBUCxDQUFZUCxRQUFaLEVBQXNCUSxPQUF0QixDQUErQmxCLElBQUQsSUFBVTtBQUN0QyxZQUFNQyxLQUFLLEdBQUdTLFFBQVEsQ0FBQ1YsSUFBRCxDQUF0QjtBQUNBLFlBQU1tQixPQUFPLEdBQUdwQiw0QkFBNEIsQ0FBQ0MsSUFBRCxFQUFPQyxLQUFQLENBQTVDOztBQUVBLFVBQUlrQixPQUFPLEtBQUssSUFBaEIsRUFBc0I7QUFDcEJKLGdCQUFRLENBQUNmLElBQUQsQ0FBUixHQUFpQm1CLE9BQWpCO0FBQ0Q7QUFDRixLQVBEOztBQVNBLFFBQUlILE1BQU0sQ0FBQ0MsSUFBUCxDQUFZRixRQUFaLEVBQXNCSyxNQUF0QixLQUFpQyxDQUFyQyxFQUF3QztBQUN0QyxhQUFPLElBQVA7QUFDRDs7QUFFRCxVQUFNQyxNQUFNLEdBQUcsRUFBZjtBQUVBTCxVQUFNLENBQUNDLElBQVAsQ0FBWUYsUUFBWixFQUFzQkcsT0FBdEIsQ0FBK0JsQixJQUFELElBQVU7QUFDdEMsWUFBTXNCLFNBQVMsR0FBR1AsUUFBUSxDQUFDZixJQUFELENBQTFCO0FBQ0EsWUFBTXVCLFdBQVcsYUFBTXZCLElBQU4sY0FBY1UsUUFBUSxDQUFDVixJQUFELENBQXRCLENBQWpCOztBQUVBLFVBQUlzQixTQUFKLEVBQWU7QUFDYkQsY0FBTSxDQUFDRyxJQUFQLGNBQWtCeEIsSUFBbEIsY0FBMEJzQixTQUExQix5QkFBa0RDLFdBQWxEO0FBQ0QsT0FGRCxNQUVPO0FBQ0xGLGNBQU0sQ0FBQ0csSUFBUCxjQUFrQnhCLElBQWxCLGNBQTBCVSxRQUFRLENBQUNWLElBQUQsQ0FBbEM7QUFDRDtBQUNGLEtBVEQ7QUFXQSxVQUFNeUIsU0FBUyxHQUFHZCxXQUFXLGtCQUFXQSxXQUFYLFVBQTZCLEVBQTFEO0FBQ0FlLFdBQU8sQ0FBQ0MsSUFBUiwwQ0FBK0NGLFNBQS9DLDZCQUNBSixNQUFNLENBQUNPLElBQVAsQ0FBWSxJQUFaLENBREE7QUFNRCxHQXZDTSIsImZpbGUiOiIvcGFja2FnZXMvdG1lYXNkYXlfY2hlY2stbnBtLXZlcnNpb25zLmpzIiwic291cmNlc0NvbnRlbnQiOlsiaW1wb3J0IHNlbXZlciBmcm9tICdzZW12ZXInO1xuXG4vLyBSZXR1cm5zOlxuLy8gICAtIHRydWUgICAgICBpZiBhIHZlcnNpb24gb2YgdGhlIHBhY2thZ2UgaW4gdGhlIHJhbmdlIGlzIGluc3RhbGxlZFxuLy8gICAtIGZhbHNlICAgICBpZiBubyB2ZXJzaW9uIGlzIGluc3RhbGxlZFxuLy8gICAtIHZlcnNpb24jICBpZiBpbmNvbXBhdGlibGUgdmVyc2lvbiBpcyBpbnN0YWxsZWRcbmNvbnN0IGNvbXBhdGlibGVWZXJzaW9uSXNJbnN0YWxsZWQgPSAobmFtZSwgcmFuZ2UpID0+IHtcbiAgdHJ5IHtcbiAgICBjb25zdCBpbnN0YWxsZWRWZXJzaW9uID0gcmVxdWlyZShgJHtuYW1lfS9wYWNrYWdlLmpzb25gKS52ZXJzaW9uO1xuICAgIGlmIChzZW12ZXIuc2F0aXNmaWVzKGluc3RhbGxlZFZlcnNpb24sIHJhbmdlKSkge1xuICAgICAgcmV0dXJuIHRydWU7XG4gICAgfSBlbHNlIHtcbiAgICAgIHJldHVybiBpbnN0YWxsZWRWZXJzaW9uO1xuICAgIH1cbiAgfSBjYXRjaCAoZSkge1xuICAgIC8vIFhYWCBhZGQgc29tZXRoaW5nIHRvIHRoZSB0b29sIHRvIG1ha2UgdGhpcyBtb3JlIHJlbGlhYmxlXG4gICAgY29uc3QgbWVzc2FnZSA9IGUudG9TdHJpbmcoKTtcbiAgICAvLyBPbmUgbWVzc2FnZSBjb21lcyBvdXQgb2YgdGhlIGluc3RhbGwgbnBtIHBhY2thZ2UgdGhlIG90aGVyIGZyb20gbnBtIGRpcmVjdGx5XG4gICAgaWYgKG1lc3NhZ2UubWF0Y2goXCJDYW5ub3QgZmluZCBtb2R1bGVcIikgfHwgbWVzc2FnZS5tYXRjaChcIkNhbid0IGZpbmQgbnBtIG1vZHVsZVwiKSkge1xuICAgICAgcmV0dXJuIGZhbHNlO1xuICAgIH0gZWxzZSB7XG4gICAgICB0aHJvdyBlO1xuICAgIH1cbiAgfVxufTtcblxuZXhwb3J0IGNvbnN0IGNoZWNrTnBtVmVyc2lvbnMgPSAocGFja2FnZXMsIHBhY2thZ2VOYW1lKSA9PiB7XG4gIGlmICghcHJvY2Vzcy5lbnYuQ1JFQVRPUl9OT0RFX0VOViA9PSAnZGV2ZWxvcG1lbnQnKSB7XG4gICAgcmV0dXJuO1xuICB9XG4gIGNvbnN0IGZhaWx1cmVzID0ge307XG5cbiAgT2JqZWN0LmtleXMocGFja2FnZXMpLmZvckVhY2goKG5hbWUpID0+IHtcbiAgICBjb25zdCByYW5nZSA9IHBhY2thZ2VzW25hbWVdO1xuICAgIGNvbnN0IGZhaWx1cmUgPSBjb21wYXRpYmxlVmVyc2lvbklzSW5zdGFsbGVkKG5hbWUsIHJhbmdlKTtcblxuICAgIGlmIChmYWlsdXJlICE9PSB0cnVlKSB7XG4gICAgICBmYWlsdXJlc1tuYW1lXSA9IGZhaWx1cmU7XG4gICAgfVxuICB9KTtcblxuICBpZiAoT2JqZWN0LmtleXMoZmFpbHVyZXMpLmxlbmd0aCA9PT0gMCkge1xuICAgIHJldHVybiB0cnVlO1xuICB9XG5cbiAgY29uc3QgZXJyb3JzID0gW107XG5cbiAgT2JqZWN0LmtleXMoZmFpbHVyZXMpLmZvckVhY2goKG5hbWUpID0+IHtcbiAgICBjb25zdCBpbnN0YWxsZWQgPSBmYWlsdXJlc1tuYW1lXTtcbiAgICBjb25zdCByZXF1aXJlbWVudCA9IGAke25hbWV9QCR7cGFja2FnZXNbbmFtZV19YDtcblxuICAgIGlmIChpbnN0YWxsZWQpIHtcbiAgICAgIGVycm9ycy5wdXNoKGAgLSAke25hbWV9QCR7aW5zdGFsbGVkfSBpbnN0YWxsZWQsICR7cmVxdWlyZW1lbnR9IG5lZWRlZGApO1xuICAgIH0gZWxzZSB7XG4gICAgICBlcnJvcnMucHVzaChgIC0gJHtuYW1lfUAke3BhY2thZ2VzW25hbWVdfSBub3QgaW5zdGFsbGVkLmApO1xuICAgIH1cbiAgfSk7XG5cbiAgY29uc3QgcXVhbGlmaWVyID0gcGFja2FnZU5hbWUgPyBgKGZvciAke3BhY2thZ2VOYW1lfSkgYCA6ICcnO1xuICBjb25zb2xlLndhcm4oYFdBUk5JTkc6IG5wbSBwZWVyIHJlcXVpcmVtZW50cyAke3F1YWxpZmllcn1ub3QgaW5zdGFsbGVkOlxuJHtlcnJvcnMuam9pbignXFxuJyl9XG5cblJlYWQgbW9yZSBhYm91dCBpbnN0YWxsaW5nIG5wbSBwZWVyIGRlcGVuZGVuY2llczpcbiAgaHR0cDovL2d1aWRlLm1ldGVvci5jb20vdXNpbmctcGFja2FnZXMuaHRtbCNwZWVyLW5wbS1kZXBlbmRlbmNpZXNcbmApO1xufTtcbiJdfQ==

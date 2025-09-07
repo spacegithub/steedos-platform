@@ -6,7 +6,13 @@ export type SteedosListenerConfig = {
     beforeInsert?: Function,
     beforeUpdate?: Function,
     beforeDelete?: Function,
+    afterFind?: Function,
+    afterCount?: Function,
+    afterFindOne?: Function,
     afterInsert?: Function,
     afterUpdate?: Function,
     afterDelete?: Function,
+    beforeAggregate?: Function,
+    afterAggregate?: Function,
+    metadataServiceName?: string,
 }

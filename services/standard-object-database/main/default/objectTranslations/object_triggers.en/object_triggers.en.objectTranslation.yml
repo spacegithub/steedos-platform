@@ -1,0 +1,51 @@
+name: object_triggers
+label: Object Triggers
+description: 
+fields:
+  name:
+    label: Name
+    help: 
+    description: 
+  listenTo:
+    label: Object
+    help: 
+    description: 
+  when:
+    label: Execution Time Option
+    help: 
+    description: 
+    options:
+      - label: "Before adding a new record"
+        value: "beforeInsert"
+      - label: "After adding a new record"
+        value: "afterInsert"
+      - label: "Before modifying a record"
+        value: "beforeUpdate"
+      - label: "After modifying a record"
+        value: "afterUpdate"
+      - label: "Before deleting a record"
+        value: "beforeDelete" 
+      - label: "After deleting a record"
+        value: "afterDelete"
+      - label: "Before checking the records"
+        value: "beforeFind"
+  is_enable:
+    label: Enable
+    help: 
+    description: 
+  todo:
+    label: >-
+      Execute Script  <a target="_blank"
+      href="https://developer.steedos.com/developer/object_trigger">View
+      Help</a>
+    help: 
+    description: 
+  is_system:
+    label: System
+    help: 
+    description: 
+listviews:
+  all:
+    label: All Triggers
+  customize:
+    label: Customize

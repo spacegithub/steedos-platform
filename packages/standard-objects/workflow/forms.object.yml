@@ -1,6 +1,8 @@
 name: forms
 icon: timesheet
 label: Form
+hidden: true
+enable_dataloader: false
 fields:
   name:
     type: text
@@ -37,6 +39,16 @@ fields:
     label: Valid
     readonly: true
     name: is_valid
+  help_text:
+    type: text
+    label: help text
+    readonly: true
+    name: help_text
+  error_message:
+    type: text
+    label: error message
+    readonly: true
+    name: error_message
   instance_style:
     type: select
     label: Instance Style
@@ -77,12 +89,13 @@ fields:
     label: current
     type: object
     is_wide: true
-    readonly: true
+    # readonly: true
     blackbox: true
     name: current
   current.form_script:
     label: Form Script
     type: code
+    language: javascript
     readonly: true
     name: current.form_script
   current.name_forumla:
@@ -92,10 +105,17 @@ fields:
     name: current.name_forumla
   current.fields:
     label: Fields
-    type: grid
+    type: table
     is_wide: true
-    readonly: true
+    # readonly: true
     name: current.fields
+    amis: 
+      inlineEditMode: false
+      addable: false
+      # 强制规范组件的mode，否则在combo组件下显示异常
+      mode: normal
+      enableTree: true
+      columns: ["code", "name", "type", "is_required", "is_wide", "is_list_display", "is_searchable", "is_multiselect"]
   current.fields.$.code:
     label: Code
     type: text
@@ -112,11 +132,14 @@ fields:
     options:
       - label: Checkbox
         value: checkbox
-      - label: DateTimeE
-        value: dateTimeD
+      - label: DateTime
+        value: dateTime
       - label: Date
         value: date
-      - label: EmailGM
+      - label: Time
+        value: time
+      - label: Email
+        value: email
       - label: Group
         value: group
       - label: Input
@@ -139,36 +162,50 @@ fields:
         value: url
       - label: User
         value: user
-      - label: GeolocationR
-        value: geolocationR
+      - label: Geolocation
+        value: geolocation
+      - label: Image
+        value: image
+      - label: File
+        value: file
+      - label: Lookup
+        value: lookup
     readonly: true
     name: current.fields.$.type
     filterable: true
   current.fields.$.is_required:
     label: Required
     type: boolean
-    readonly: true
-    name: current.fields.$.is_requiredW
+    # readonly: true
+    name: current.fields.$.is_required
   current.fields.$.is_wide:
     label: Wide
     type: boolean
-    readonly: true
+    # readonly: true
     name: current.fields.$.is_wide
   current.fields.$.is_list_display:
     label: Display in List
     type: boolean
-    readonly: true
+    # readonly: true
     name: current.fields.$.is_list_display
   current.fields.$.is_searchable:
     label: Searchable
     type: boolean
-    readonly: true
+    # readonly: true
     name: current.fields.$.is_searchable
   current.fields.$.is_multiselect:
     label: Multiselect
     type: boolean
-    readonly: true
+    # readonly: true
     name: current.fields.$.is_multiselect
+  current.fields.$.visibleOn:
+    label: visible On
+    type: code
+    # readonly: true
+    is_wide: true
+    name: current.fields.$.visibleOn
+    amis:
+      visibleOn: ${!!_master.record.object_name}
   # company_id:
   #   required: false
   #   omit: false

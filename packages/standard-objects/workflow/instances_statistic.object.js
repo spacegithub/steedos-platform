@@ -1,4 +1,4 @@
-db.instances_statistic = new Mongo.Collection("instances_statistic")
+db.instances_statistic = Creator.getCollection('instances_statistic') || new Mongo.Collection("instances_statistic")
 
 
 // instances_stat.coffee
@@ -34,7 +34,7 @@ InstancesStat.run = function () {
   try {
     // space = InstancesStat.rule.space;
     // 效率统计，定时任务只扫描企业版
-    Creator.getCollection('spaces').find({ is_paid: true, modules: 'workflow.enterprise', end_date: { $gte: new Date() } }).forEach(function (space) {
+    Creator.getCollection('spaces').find({features: 'workflow_statistics'}).forEach(function (space) {
       return InstancesStat.costTime(space._id);
     });
   } catch (e) {
@@ -46,8 +46,6 @@ Meteor.startup(function () {
   if (InstancesStat.rule && InstancesStat.rule.schedule) {
     // 开始同步任务，同步任务的schedule
     schedule.scheduleJob(InstancesStat.rule.schedule, Meteor.bindEnvironment(InstancesStat.run));
-  } else {
-    logger.error("Miss settings: instances_stat.schedule");
   }
 });
 

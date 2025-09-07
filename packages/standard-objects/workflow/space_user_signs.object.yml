@@ -1,6 +1,9 @@
 name: space_user_signs
-icon: metrics
+icon: carousel
 label: User Sign
+hidden: true
+version: 2
+enable_dataloader: false
 fields:
   user:
     type: lookup
@@ -10,6 +13,7 @@ fields:
     name: user
     filterable: true
     searchable: true
+    is_name: true
   sign:
     type: avatar
     label: Sign

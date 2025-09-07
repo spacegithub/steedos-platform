@@ -1,13 +1,14 @@
 import { JsonMap, Dictionary } from "@salesforce/ts-types";
 import { SteedosDriver } from "./index"
 import { SteedosQueryOptions, SteedosQueryFilters } from "../types/query";
-import { SteedosIDType } from "../types";
+import { SteedosIDType, SteedosObjectType } from "../types";
 import { SteedosDriverConfig } from "./driver";
 import { formatFiltersToODataQuery } from "@steedos/filters";
-import { createFilter } from 'odata-v4-mongodb';
-import { createQuery } from 'odata-v4-mongodb';
+import { createFilter, createQuery } from '@steedos/odata-v4-mongodb';
 import _ = require("underscore");
 import { SteedosFieldDBType } from "./fieldDBType";
+import { ObjectId } from "mongodb";
+import { formatRecord } from './format';
 
 var Fiber = require('fibers');
 
@@ -42,7 +43,31 @@ export class SteedosMeteorMongoDriver implements SteedosDriver {
     constructor(config: SteedosDriverConfig) {
     }
 
+    async directUpdateMany(tableName: string, queryFilters: SteedosQueryFilters, data: Dictionary<any>, userId?: SteedosIDType) {
+        let collection = this.collection(tableName);
+        let mongoFilters = this.getMongoFilters(queryFilters);
+        return await new Promise((resolve, reject) => {
+            Fiber(function () {
+                try {
+                    let invocation = new DDPCommon.MethodInvocation({
+                        isSimulation: true,
+                        userId: userId,
+                        connection: null,
+                        randomSeed: DDPCommon.makeRpcSeed()
+                    })
+                    let result = DDP._CurrentInvocation.withValue(invocation, function () {
+                        return collection.direct.update(mongoFilters, { $set: data }, { multi: true, validate: false, filter: false });
+                    })
+                    resolve(result);
+                } catch (error) {
+                    reject(error)
+                }
+            }).run()
+        });
+    }
+
     formatFiltersToMongoQuery(filters: any): JsonMap {
+        let emptyFilters = {};
         let odataQuery: string = "";
         if (_.isString(filters)) {
             odataQuery = filters;
@@ -50,7 +75,10 @@ export class SteedosMeteorMongoDriver implements SteedosDriver {
         else {
             odataQuery = formatFiltersToODataQuery(filters)
         }
-        let query: JsonMap = createFilter(odataQuery)
+        if (!odataQuery) {
+            return emptyFilters;
+        }
+        let query: JsonMap = createFilter(odataQuery);
         return query;
     }
 
@@ -118,6 +146,64 @@ export class SteedosMeteorMongoDriver implements SteedosDriver {
         return result;
     }
 
+    getAggregateOptions(options: SteedosQueryOptions): any[] {
+        if (_.isUndefined(options)) {
+            return [];
+        }
+        let result = [];
+        let projection: JsonMap = this.getMongoFieldsOptions(options.fields);
+        let sort: JsonMap = this.getMongoSortOptions(options.sort);
+        if (!_.isEmpty(projection)) {
+            result.push({ $project: projection });
+        }
+        if (!_.isEmpty(sort)) {
+            result.push({ $sort: sort });
+        }
+        if (options.skip) {
+            result.push({ $skip: options.skip });
+        }
+        if (options.top) {
+            result.push({ $limit: options.top });
+        }
+        return result;
+    }
+
+    getAggregateSortOption(options: SteedosQueryOptions): any {
+        if (_.isUndefined(options)) {
+            return;
+        }
+        let sort: JsonMap = this.getMongoSortOptions(options.sort);
+        if (!_.isEmpty(sort)) {
+            return { $sort: sort };
+        }
+        return;
+    }
+
+    getAggregateProjectionOption(options: SteedosQueryOptions): any {
+        if (_.isUndefined(options)) {
+            return [];
+        }
+        let projection: JsonMap = this.getMongoFieldsOptions(options.fields);
+        if (!_.isEmpty(projection)) {
+            return { $project: projection };
+        }
+        return;
+    }
+
+    getAggregateSkipLimitOptions(options: SteedosQueryOptions): any {
+        if (_.isUndefined(options)) {
+            return [];
+        }
+        let result = [];
+        if (options.skip) {
+            result.push({ $skip: options.skip });
+        }
+        if (options.top) {
+            result.push({ $limit: options.top });
+        }
+        return result;
+    }
+
     collection(name: string) {
         return Creator.Collections[name];
     };
@@ -141,6 +227,101 @@ export class SteedosMeteorMongoDriver implements SteedosDriver {
                         return collection.find(mongoFilters, mongoOptions).fetch();
                     })
                     resolve(result);
+                } catch (error) {
+                    reject(error)
+                }
+            }).run()
+        });
+    }
+
+    async aggregate(tableName: string, query: SteedosQueryOptions, externalPipeline: any[], userId?: SteedosIDType) {
+        let collection = this.collection(tableName);
+        let rawCollection = collection.rawCollection();
+        let pipeline = [];
+
+        let mongoFilters = this.getMongoFilters(query.filters);
+        let sortOption = this.getAggregateSortOption(query);
+        if (sortOption) {
+            pipeline.push(sortOption);
+        }
+        pipeline.push({ $match: mongoFilters });
+        let skipLimitOptions = this.getAggregateSkipLimitOptions(query);
+        if (!_.isEmpty(skipLimitOptions)) {
+            pipeline = pipeline.concat(skipLimitOptions);
+        }
+        let projectionOption = this.getAggregateProjectionOption(query);
+        if (projectionOption) {
+            pipeline.push(projectionOption);
+        }
+        if (!_.isEmpty(externalPipeline)) {
+            pipeline = pipeline.concat(externalPipeline);
+        }
+        return await new Promise((resolve, reject) => {
+            Fiber(function () {
+                try {
+                    rawCollection.aggregate(pipeline).toArray(function (err, data) {
+                        if (err) {
+                            reject(err);
+                        }
+                        resolve(data);
+                    });
+                } catch (error) {
+                    reject(error)
+                }
+            }).run()
+        });
+    }
+
+    async directAggregate(tableName: string, query: SteedosQueryOptions, externalPipeline: any[], userId?: SteedosIDType) {
+        let collection = this.collection(tableName);
+        let rawCollection = collection.rawCollection();
+        let pipeline = [];
+
+        let mongoFilters = this.getMongoFilters(query.filters);
+        let aggregateOptions = this.getAggregateOptions(query);
+
+        pipeline.push({ $match: mongoFilters });
+
+        pipeline = pipeline.concat(aggregateOptions).concat(externalPipeline);
+
+        return await new Promise((resolve, reject) => {
+            Fiber(function () {
+                try {
+                    rawCollection.aggregate(pipeline).toArray(function (err, data) {
+                        if (err) {
+                            reject(err);
+                        }
+                        resolve(data);
+                    });
+                } catch (error) {
+                    reject(error)
+                }
+            }).run()
+        });
+    }
+
+    async directAggregatePrefixalPipeline(tableName: string, query: SteedosQueryOptions, prefixalPipeline: any[], userId?: SteedosIDType) {
+        let collection = this.collection(tableName);
+        let rawCollection = collection.rawCollection();
+        let pipeline = [];
+
+        let mongoFilters = this.getMongoFilters(query.filters);
+        let aggregateOptions = this.getAggregateOptions(query);
+
+        pipeline.push({ $match: mongoFilters });
+
+        // pipeline中的次序不能错，一定要先$lookup，再$match，再$project、$sort、$skip、$limit等，否则查询结果可能为空，比如公式字段中就用到了$lookup
+        pipeline = prefixalPipeline.concat(pipeline).concat(aggregateOptions);
+
+        return await new Promise((resolve, reject) => {
+            Fiber(function () {
+                try {
+                    rawCollection.aggregate(pipeline).toArray(function (err, data) {
+                        if (err) {
+                            reject(err);
+                        }
+                        resolve(data);
+                    });
                 } catch (error) {
                     reject(error)
                 }
@@ -176,6 +357,7 @@ export class SteedosMeteorMongoDriver implements SteedosDriver {
         let collection = this.collection(tableName);
         let mongoFilters = this.getMongoFilters(query.filters);
         let mongoOptions = this.getMongoOptions(query);
+        let self = this;
         return await new Promise((resolve, reject) => {
             Fiber(function () {
                 try {
@@ -186,7 +368,10 @@ export class SteedosMeteorMongoDriver implements SteedosDriver {
                         randomSeed: DDPCommon.makeRpcSeed()
                     })
                     let result = DDP._CurrentInvocation.withValue(invocation, function () {
-                        let selector = { _id: id };
+                        let selector: any = { _id: id };
+                        if (_.isObject(id)) {
+                            selector = self.getMongoFilters(id['filters']);
+                        }
                         if (!_.isEmpty(mongoFilters)) {
                             selector = Object.assign(mongoFilters, selector);
                         }
@@ -214,7 +399,7 @@ export class SteedosMeteorMongoDriver implements SteedosDriver {
                         randomSeed: DDPCommon.makeRpcSeed()
                     })
                     let result = DDP._CurrentInvocation.withValue(invocation, function () {
-                        let recordId = collection.insert(data);
+                        let recordId = collection.insert(data, { validate: false, filter: false });
                         return collection.findOne({ _id: recordId });
                     })
                     resolve(result);
@@ -243,8 +428,19 @@ export class SteedosMeteorMongoDriver implements SteedosDriver {
                         connection: null,
                         randomSeed: DDPCommon.makeRpcSeed()
                     })
+
+                    const options = { $set: {} };
+                    const keys = _.keys(data);
+                    _.each(keys, function (key) {
+                        if (_.include(['$inc','$min','$max','$mul', '$push', '$addToSet', '$pop', '$pull', '$pullAll'], key)) {
+                            options[key] = data[key];
+                        } else {
+                            options.$set[key] = data[key];
+                        }
+                    })
+
                     let result = DDP._CurrentInvocation.withValue(invocation, function () {
-                        collection.update(selector, { $set: data });
+                        collection.update(selector, options, { validate: false, filter: false });
                         return collection.findOne(selector);
                     })
                     resolve(result);
@@ -273,7 +469,7 @@ export class SteedosMeteorMongoDriver implements SteedosDriver {
                         randomSeed: DDPCommon.makeRpcSeed()
                     })
                     let result = DDP._CurrentInvocation.withValue(invocation, function () {
-                        collection.update(selector, { $set: data });
+                        collection.update(selector, { $set: data }, { validate: false, filter: false });
                         return collection.findOne(selector);
                     })
                     resolve(result);
@@ -297,7 +493,7 @@ export class SteedosMeteorMongoDriver implements SteedosDriver {
                         randomSeed: DDPCommon.makeRpcSeed()
                     })
                     let result = DDP._CurrentInvocation.withValue(invocation, function () {
-                        return collection.update(mongoFilters, { $set: data }, { multi: true });
+                        return collection.update(mongoFilters, { $set: data }, { multi: true, validate: false, filter: false });
                     })
                     resolve(result);
                 } catch (error) {
@@ -335,6 +531,32 @@ export class SteedosMeteorMongoDriver implements SteedosDriver {
         });
     }
 
+    async directFind(tableName: string, query: SteedosQueryOptions, userId?: SteedosIDType) {
+        let collection = this.collection(tableName);
+
+        let mongoFilters = this.getMongoFilters(query.filters);
+        let mongoOptions = this.getMongoOptions(query);
+
+        return await new Promise((resolve, reject) => {
+            Fiber(function () {
+                try {
+                    let invocation = new DDPCommon.MethodInvocation({
+                        isSimulation: true,
+                        userId: userId,
+                        connection: null,
+                        randomSeed: DDPCommon.makeRpcSeed()
+                    })
+                    let result = DDP._CurrentInvocation.withValue(invocation, function () {
+                        return collection.direct.find(mongoFilters, mongoOptions).fetch();
+                    })
+                    resolve(result);
+                } catch (error) {
+                    reject(error)
+                }
+            }).run()
+        });
+    }
+
     async directUpdate(tableName: string, id: SteedosIDType | SteedosQueryOptions, data: Dictionary<any>, userId?: SteedosIDType) {
         let collection = this.collection(tableName);
         let selector;
@@ -352,8 +574,19 @@ export class SteedosMeteorMongoDriver implements SteedosDriver {
                         connection: null,
                         randomSeed: DDPCommon.makeRpcSeed()
                     })
+
+                    const options = { $set: {} };
+                    const keys = _.keys(data);
+                    _.each(keys, function (key) {
+                        if (_.include(['$inc', '$min', '$max', '$mul'], key)) {
+                            options[key] = data[key];
+                        } else {
+                            options.$set[key] = data[key];
+                        }
+                    })
+
                     let result = DDP._CurrentInvocation.withValue(invocation, function () {
-                        collection.direct.update(selector, { $set: data });
+                        collection.direct.update(selector, options);
                         return collection.findOne(selector);
                     })
                     resolve(result);
@@ -416,5 +649,13 @@ export class SteedosMeteorMongoDriver implements SteedosDriver {
                 }
             }).run()
         });
+    }
+
+    _makeNewID(tableName?: string) {
+        return new ObjectId().toHexString();
+    }
+
+    formatRecord(doc: Dictionary<any>, objectConfig: SteedosObjectType){
+        return formatRecord(doc, objectConfig);
     }
 }

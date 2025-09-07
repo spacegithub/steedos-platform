@@ -1,0 +1,8 @@
+name: custom
+filter_scope: space
+label: 自定义软件包
+scrolling_mode: standard
+shared: true
+show_count: false
+type: grid
+filters: [["static","!=", true]]

@@ -1,32 +1,49 @@
 {
-  "name": "steedos-server",
+  "name": "steedos-platform",
   "private": true,
   "workspaces": [
     "packages/*",
-    "apps/*",
-    "server"
+    "services/*",
+    "ee/*",
+    "server",
+    "steedos-packages/*"
   ],
   "scripts": {
-    "bootstrap": "lerna bootstrap && yarn run link",
-    "link": "lerna exec -- yarn link",
-    "unlink": "lerna exec -- yarn unlink",
-    "ver": "lerna version --force-publish",
-    "pub": "lerna publish from-package --registry https://registry.npmjs.org",
-    "compile": "lerna run compile",
-    "prepare": "lerna run prepare",
-    "clean": "lerna clean",
-    "changed": "lerna changed",
-    "git": "git config core.autocrlf true && git config core.filemode false",
-    "syncToTaoBao": "cnpm sync @steedos/app-contracts && cnpm sync @steedos/auth && cnpm sync steedos-cli && cnpm sync @steedos/core && cnpm sync @steedos/filters && cnpm sync @steedos/i18n && cnpm sync @steedos/meteor-bundle-dependencies && cnpm sync @steedos/meteor-bundle-runner && cnpm sync @steedos/migrate && cnpm sync @steedos/objectql && cnpm sync @steedos/project-template-empty && cnpm sync @steedos/schemas && cnpm sync @steedos/standard-objects && cnpm sync steedos-server && cnpm sync create-steedos-app"
+    "bootstrap": "lerna clean --yes && lerna bootstrap",
+    "build": "yarn bootstrap && lerna run build",
+    "docker": "docker-compose up",
+    "docker:db": "docker-compose up mongodb mongodb-init redis nats",
+    "i18n": "lerna run i18n",
+    "start": "steedos start --config steedos.config.js",
+    "sync": "lerna exec --no-private  -- cnpm sync \\$LERNA_PACKAGE_NAME"
   },
   "resolutions": {
-    "**/lodash": "^4.17.15",
-    "**/handlebars": "^4.3.0",
-    "**/debug": "^3.1.0",
-    "**/hoek": "^5.0.3",
-    "**/cryptiles": "^4.1.2"
+    "@salesforce/ts-types": "1.1.2",
+    "**/fibers": "5.0.3",
+    "**/type-fest": "0.21.3",
+    "@azure/core-auth": "1.5.0",
+    "@azure/core-client": "1.7.3",
+    "@azure/core-lro": "2.5.4",
+    "@azure/core-rest-pipeline": "1.12.1",
+    "@azure/core-util": "1.5.0",
+    "@azure/keyvault-keys": "4.7.2",
+    "@azure/logger": "1.0.4",
+    "@azure/core-tracing": "1.0.1",
+    "@azure/core-paging": "1.5.0",
+    "@types/mime": "3.0.0",
+    "undici": "5.16.0",
+    "mingo": "6.4.15",
+    "pg": "8.10.0"
   },
   "devDependencies": {
-    "lerna": "^3.16.4"
+    "cnpm": "9.0.1",
+    "tslib": "^2.4.0",
+    "@babel/core": "^7.8.4",
+    "@types/express-serve-static-core": "~4.17.29",
+    "@types/node": "18.0.3",
+    "lerna": "^4.0.0",
+    "nodemon": "^2.0.19",
+    "typescript": "4.6.3",
+    "mssql": "6.4.1"
   }
 }

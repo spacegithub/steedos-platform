@@ -64,9 +64,27 @@ export function getTableColumns(fields: Dictionary<SteedosFieldType>, object: St
             precision: field.precision ? field.precision : (field.scale ? 18 : undefined),
             scale: field.scale
         };
+        // 如果是postgres数据库，维护数组属性
+        if (databaseType === "postgres") {
+            if (field.multiple) {
+                columns[fieldName]['array'] = true
+            }
+        }
         if(field.column_name){
             (columns as any)[fieldName]["name"] = field.column_name
         }
+        // 服务端增加_id字段统一代理主键字段处理查询
+        // if (field.primary) {
+        //     (columns as any)['_id'] = {
+        //         ...columns[fieldName],
+        //         name: field.column_name || fieldName,
+        //         generated: false,
+        //         primary: false,
+        //         nullable: true,
+        //         insert: false,
+        //         update: false
+        //     };
+        // }
     }
     if (!primaryColumnCount){
         return null;
@@ -101,13 +119,13 @@ export function getEntities(objects: Dictionary<SteedosObjectType>, databaseType
     for (let name in objects) {
         let object = objects[name];
         let primaryKeys = object.idFieldNames;
-        if (primaryKeys.length === 1) {
+        if (primaryKeys?.length === 1) {
             let entitySchema = getEntity(object, databaseType);
             if (entitySchema) {
                 entities[object.table_name] = entitySchema;
             }
         }
-        else if (primaryKeys.length > 1) {
+        else if (primaryKeys?.length > 1) {
             primaryColumnMultiErrorTables.push(object.table_name);
         }
         else{
@@ -115,10 +133,10 @@ export function getEntities(objects: Dictionary<SteedosObjectType>, databaseType
         }
     }
     if (primaryColumnEmptyErrorTables.length) {
-        console.error(`These tables: "${primaryColumnEmptyErrorTables.join(",")}" does not have a primary column. Primary column is not required in DB, but is required in yml object file.`);
+        console.warn(`These tables: "${primaryColumnEmptyErrorTables.join(",")}" does not have a primary column. Primary column is not required in DB, but is required in yml object file.`);
     }
     if (primaryColumnMultiErrorTables.length) {
-        console.error(`These tables: "${primaryColumnMultiErrorTables.join(",")}" have multi primary columns. it is not supported yet.`);
+        console.warn(`These tables: "${primaryColumnMultiErrorTables.join(",")}" have multi primary columns. it is not supported yet.`);
     }
     return entities;
 }

@@ -1,4 +1,4 @@
-import { getObjectI18nTemplate, toYml } from './translation';
+import { getObjectI18nTemplate } from './i18n/i18n';
 const objectql = require('@steedos/objectql');
 
 
@@ -17,3 +17,7 @@ export const exportObjectI18n = async (req: any, res: any)=>{
     }
 }
 
+export const toYml = function(date: StringMap, options?){
+    const yaml = require('js-yaml');
+    return yaml.dump(date, options).replace(/: ''/g, ': '); //, {sortKeys: true}
+}

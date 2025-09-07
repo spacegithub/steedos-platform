@@ -1,0 +1,55 @@
+name: clear_login_tokens
+amis_schema: |-
+  {
+      "type": "service",
+      "body": [
+          {
+              "type": "button",
+              "label": "注销所有登录",
+              "id": "u:clear_login_tokens",
+              "editorState": "default",
+              "confirmText": "注销所有登录后, 用户所有已登录的流程器、客户端都需要重新登录. 确定要清理吗?",
+              "hiddenOn": "context.user.is_space_admin != true || Meteor.settings.public.enable_saas == true",
+              "onEvent": {
+                  "click": {
+                      "weight": 0,
+                      "actions": [
+                          {
+                              "actionType": "ajax",
+                              "outputVar": "responseResult",
+                              "args": {
+                                  "options": {},
+                                  "api": {
+                                      "url": "${context.rootUrl}/api/users/${record.user}/clear_login_tokens",
+                                      "method": "get",
+                                      "requestAdaptor": "",
+                                      "adaptor": "",
+                                      "messages": {
+                                          "success": "注销成功"
+                                      }
+                                  }
+                              }
+                          }
+                      ]
+                  }
+              }
+          }
+      ],
+      "regions": [
+          "body"
+      ],
+      "data": {
+          "context": {},
+          "dataComponentId": "",
+          "record_id": "",
+          "record": {},
+          "permissions": {}
+      },
+      "bodyClassName": "p-0",
+      "id": "u:0ef6ed9aee76"
+  }
+is_enable: true
+label: 注销所有登录
+'on': record_more
+type: amis_button
+visible: true

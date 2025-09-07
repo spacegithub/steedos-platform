@@ -1,3 +1,4 @@
+const objectql = require("@steedos/objectql");
 if (!db.flows) {
     const core = require('@steedos/core');
     db.flows = core.newCollection('flows');
@@ -7,42 +8,53 @@ if (Meteor.isServer) {
     db.flows.copy = function (userId, spaceId, flowId, options, enabled) {
         var company_id, flow, form, newFlowName, newName, ref;
         var templateSpaceId = Creator.getTemplateSpaceId();
-        var flowQuery = {
-            _id: flowId
-        }
-        if(templateSpaceId){
-            flowQuery["$or"] = [{space:templateSpaceId}, {space:spaceId}]
+        if(templateSpaceId === 'template' && options.from === 'template'){
+            let getData = function () {
+                return objectql.getObject("flows").findOne(flowId, {}, Object.assign({roles: ['admin']}, {spaceId: templateSpaceId}));
+            }
+            var data =  objectql.wrapAsync(getData, {});
+            return steedosImport.workflow(userId, spaceId, data, enabled, company_id);
         }else{
-            flowQuery.space = spaceId
-        }
-        flow = db.flows.findOne(flowQuery, {
+            var flowQuery = {
+                _id: flowId
+            }
+            if(templateSpaceId){
+                flowQuery["$or"] = [{space:templateSpaceId}, {space:spaceId}]
+            }else{
+                flowQuery.space = spaceId
+            }
+            flow = db.flows.findOne(flowQuery, {
                 fields: {
                     _id: 1,
                     name: 1,
                     form: 1
                 }
             });
-        if (!flow) {
-            throw new Meteor.Error(`[flow.copy]未找到flow, space: ${spaceId}, flowId: ${flowId}`);
+            if (!flow) {
+                throw new Meteor.Error(`[flow.copy]未找到flow, space: ${spaceId}, flowId: ${flowId}`);
+            }
+            newFlowName = options != null ? options.name : void 0;
+            company_id = options != null ? options.company_id : void 0;
+            if (newFlowName) {
+                newName = newFlowName;
+            } else {
+                newName = "复制:" + flow.name;
+            }
+            form = steedosExport.form(flow.form, flow._id, true, company_id);
+            if (_.isEmpty(form)) {
+                throw new Meteor.Error(`[flow.copy]未找到form, formId: ${flow.form}`);
+            }
+            form.name = newName;
+            if ((ref = form.flows) != null) {
+                ref.forEach(function (f) {
+                    delete f.api_name
+                    return f.name = newName;
+                });
+            }
+            delete form.api_name
+
+            return steedosImport.workflow(userId, spaceId, form, enabled, company_id);
         }
-        newFlowName = options != null ? options.name : void 0;
-        company_id = options != null ? options.company_id : void 0;
-        if (newFlowName) {
-            newName = newFlowName;
-        } else {
-            newName = "复制:" + flow.name;
-        }
-        form = steedosExport.form(flow.form, flow._id, true, company_id);
-        if (_.isEmpty(form)) {
-            throw new Meteor.Error(`[flow.copy]未找到form, formId: ${flow.form}`);
-        }
-        form.name = newName;
-        if ((ref = form.flows) != null) {
-            ref.forEach(function (f) {
-                return f.name = newName;
-            });
-        }
-        return steedosImport.workflow(userId, spaceId, form, enabled, company_id);
     };
 }
 
@@ -63,13 +75,24 @@ if (Meteor.isServer) {
         }
     });
     db.flows.before.insert(function (userId, doc) {
-        doc.created_by = userId;
-        doc.created = new Date();
-        if (doc.current) {
-            doc.current.created_by = userId;
-            doc.current.created = new Date();
-            doc.current.modified_by = userId;
-            return doc.current.modified = new Date();
+        if(userId){
+            doc.created_by = userId;
+            doc.created = new Date();
+            if (doc.current) {
+                doc.current.created_by = userId;
+                doc.current.created = new Date();
+                doc.current.modified_by = userId;
+                return doc.current.modified = new Date();
+            }
+        }
+    });
+    db.flows.before.update(function (userId, doc, fieldNames, modifier, options) {
+        if(modifier.$set.api_name){
+            checkName(modifier.$set.api_name)
+            let count = db.flows.find({_id: {$ne: doc._id}, api_name: modifier.$set.api_name, space: doc.space}).count()
+            if(count > 0){
+                throw new Error('Api Name不能重复')
+            }
         }
     });
     db.flows.after.update(function (userId, doc, fieldNames, modifier, options) {
@@ -114,87 +137,6 @@ if (Meteor.isServer) {
             }
         }
     });
-    db.flows._ensureIndex({
-        "is_deleted": 1
-    }, {
-            background: true
-        });
-    db.flows._ensureIndex({
-        "space": 1
-    }, {
-            background: true
-        });
-    db.flows._ensureIndex({
-        "space": 1,
-        "is_deleted": 1
-    }, {
-            background: true
-        });
-    db.flows._ensureIndex({
-        "role": 1,
-        "is_deleted": 1
-    }, {
-            background: true
-        });
-    db.flows._ensureIndex({
-        "space": 1,
-        "app": 1,
-        "created": 1
-    }, {
-            background: true
-        });
-    db.flows._ensureIndex({
-        "space": 1,
-        "app": 1,
-        "created": 1,
-        "current.modified": 1
-    }, {
-            background: true
-        });
-    db.flows._ensureIndex({
-        "name": 1,
-        "space": 1
-    }, {
-            background: true
-        });
-    db.flows._ensureIndex({
-        "form": 1,
-        "is_deleted": 1
-    }, {
-            background: true
-        });
-    db.flows._ensureIndex({
-        "current.steps.approver_roles": 1,
-        "space": 1,
-        "is_deleted": 1
-    }, {
-            background: true
-        });
-    db.flows._ensureIndex({
-        "_id": 1,
-        "space": 1,
-        "is_deleted": 1
-    }, {
-            background: true
-        });
-    db.flows._ensureIndex({
-        "space": 1,
-        "form": 1
-    }, {
-            background: true
-        });
-    db.flows._ensureIndex({
-        "form": 1
-    }, {
-            background: true
-        });
-    db.flows._ensureIndex({
-        "space": 1,
-        "form": 1,
-        "state:": 1
-    }, {
-            background: true
-        });
 }
 
 db.flows.helpers({
@@ -374,3 +316,29 @@ new Tabular.Table({
     searching: true,
     autoWidth: false
 });
+
+//只能包含小写字母、数字，必须以字母开头，不能以下划线字符结尾或包含两个连续的下划线字符 TODO 支持表格
+function checkName(name){
+  var reg = new RegExp('^[a-z]([a-z0-9]|_(?!_))*[a-z0-9]$'); //支持表格类型的验证表达式(待优化.$.限制只能出现一次): new RegExp('^[a-z]([a-z0-9]|_(?!_))*(\\.\\$\\.\\w+)*[a-z0-9]$')
+  //TODO 撤销注释
+  if(!reg.test(name)){
+    throw new Error("名称只能包含小写字母、数字，必须以字母开头，不能以下划线字符结尾或包含两个连续的下划线字符");
+  }
+  if(name.length > 50){
+    throw new Error("名称长度不能大于50个字符");
+  }
+  return true
+}
+
+module.exports = {
+	// 通过判断该流程是否绑定对象，决定流程详情页-标题面板上是否显示“添加字段”按钮
+    addFormFields: function (object_name, record_id) {
+        //这里/api/amisFormDesign?PagId 改为 id
+        document.location = Steedos.absoluteUrl(`/api/amisFormDesign?id=${record_id}`);
+    },
+    addFormFieldsVisable: function (object_name, record_id, record_permissions) {
+        const record = Creator.getObjectRecord(object_name, record_id);
+        return record.object_name;
+    }
+
+}

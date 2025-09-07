@@ -1,0 +1,19 @@
+{
+  "name": "@steedos/webapp-accounts",
+  "version": "2.7.18-beta.41",
+  "main": "package.service.js",
+  "scripts": {},
+  "files": [
+    "package.service.js",
+    "public"
+  ],
+  "license": "MIT",
+  "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "lodash": "^4.17.21"
+  },
+  "gitHead": "0b781a80560d115e8be3c4e39bc2c0c97cc15ce1"
+}

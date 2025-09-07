@@ -1,0 +1,419 @@
+name: object_fields
+label: Object Fields
+description: 
+fields:
+  object:
+    label: Object
+    help: 
+    description: 
+  label:
+    label: Label
+    help: 
+    description: 
+  _name:
+    label: Field Name
+    help: 
+    description: 
+  name:
+    label: API Name
+    help: >-
+      Can only contain lowercase letters and numbers, must start with a letter,
+      cannot end with an underscore character or contain two consecutive
+      underscore characters
+    description: 
+  type:
+    label: Type
+    help: 
+    options:
+      - label: Text
+        value: text
+      - label: Textarea
+        value: textarea
+      - label: Rich text
+        value: html
+      - label: Code
+        value: code
+      - label: Markdown
+        value: markdown
+      - label: Select
+        value: select
+      - label: Color
+        value: color
+      - label: Checkbox
+        value: boolean
+      - label: Toggle
+        value: toggle
+      - label: Date
+        value: date
+      - label: Datetime
+        value: datetime
+      - label: Time
+        value: time
+      - label: Number
+        value: number
+      - label: Currency
+        value: currency
+      - label: Percent
+        value: percent
+      - label: Password
+        value: password
+      - label: Lookup Relationship
+        value: lookup
+      - label: Master-Detail Relationship
+        value: master_detail
+      - label: Autonumber
+        value: autonumber
+      - label: Url
+        value: url
+      - label: Email
+        value: email
+      - label: Location
+        value: location
+      - label: Image
+        value: image
+      - label: File
+        value: file
+      - label: Formula
+        value: formula
+      - label: Roll-Up Summary
+        value: summary
+    description: 
+  language:
+    label: Language
+    help: 
+    description: 
+  defaultValue:
+    label: Default Value
+    help: 
+    description: 
+  group:
+    label: Group
+    help: 
+    description: 
+  coordinatesType:
+    label: Coordinates Type
+    help: 
+    description: 
+  reference_to:
+    label: Reference to
+    help: 
+    description: 
+  depend_on:
+    label: Dependent Fields
+    help: If the value of the dependent field changes, the option value of the current field will also change accordingly。
+    description: 
+  create:
+    label: Show New Button
+    help: 
+    description: 
+  reference_to_field:
+    label: Reference to field
+    help: The value of the associated object saved to the current object field; For example, after object A is associated with object B, when A1 record is associated with B1 record, B1 record will be stored by default_ Save the ID in the A1 record. If the foreign key field is modified, the 'foreign key field' will be replaced_ Store the ID in the A1 record.
+    description: The default is the primary key, and the default value is _id.
+  filters:
+    label: Lookup Relationship Filters Condition
+    help: When the field type is Lookup Relationship or Master Detail Relationship, filtering conditions can be configured for the field, filtering option list; The field values can be configured as formulas, and the fields referenced in the formulas need to be configured in Dependent Fields at the same time
+    description: 
+  filtersFunction:
+    label: Lookup Relationship Filters Function
+    help: 
+    description: 
+  optionsFunction:
+    label: options Function
+    help: 
+    description: 
+  precision:
+    label: Precision
+    help: 
+    description: 
+  scale:
+    label: Scale
+    help: >-
+      If the field type is a Percent, this indicates the number of decimal
+      places the field will display, for example, two decimal places will
+      display as 10.20%.
+    description: 
+  rows:
+    label: Rows
+    help: 
+    description: 
+  multiple:
+    label: Multiple
+    help: Single choice and multiple choice switch to each other. Please resubmit the existing records or modify the saving format of this field in the database.
+    description: 
+  options:
+    label: Options
+    help: >-
+      The label and value of each option cannot be empty. Set the background
+      color to FFFFFF in hexadecimal format.
+    description: 
+  options.$:
+    label: Options
+    help: 
+    description: 
+  options.$.label:
+    label: Label
+    help: 
+    description: 
+  options.$.value:
+    label: Value
+    help: 
+    description: 
+  options.$.color:
+    label: Color
+    help: 
+    description: 
+  options.$.description:
+    label: Description
+    help: 
+    description: 
+  auto_fill_mapping:
+    label: Auto Fill Mapping
+    help: In a form, after you fill in one field, other fields are automatically filled according to preset rules. For example, in the New Payment history form, after selecting a contract, the amount of the contract is automatically filled into the payment amount field.
+    description: 
+  auto_fill_mapping.$:
+    label: Auto Fill Mapping
+    help: 
+    description: 
+  auto_fill_mapping.$.from:
+    label: From:Fields in object that reference to
+    help: 
+    description: 
+  auto_fill_mapping.$.to:
+    label: To:Fields in the current form
+    help: 
+    description: 
+  autonumber_enable_modify:
+    label: Allow modification of numbers
+    help: 
+    description: 
+  formula:
+    label: Formula
+    help: This field must be filled when the field type is 'Autonumber' or 'Formula'
+    description: 
+  data_type:
+    label: Data Type
+    help: This field must be filled when the field type is 'Formula'
+    options:
+      - label: Checkbox
+        value: boolean
+      - label: Number
+        value: number
+      - label: Currency
+        value: currency
+      - label: Percent
+        value: percent
+      - label: Text
+        value: text
+      - label: Date
+        value: date
+      - label: Datetime
+        value: datetime
+    description: 
+  formula_blank_value:
+    label: Blank Field Handling
+    help: >-
+      If your formula references any number or currency fields, specify what
+      happens to the formula output when their values are blank.
+    options:
+      - label: Treat blank fields as zeroes
+        value: zeroes
+      - label: Treat blank fields as blanks
+        value: blanks
+    description: 
+  summary_object:
+    label: Object to Summarize
+    help: This field must be filled in when the field type is 'Roll-Up Summary'.
+    description: 
+  summary_type:
+    label: Roll-Up Type
+    help: This field must be filled in when the field type is 'Roll-Up Summary'.
+    options:
+      - label: COUNT
+        value: count
+      - label: SUM
+        value: sum
+      - label: MIN
+        value: min
+      - label: MAX
+        value: max
+      - label: AVG
+        value: avg
+    description: 
+  summary_field:
+    label: Field to Aggregate
+    help: >-
+      If the field type is a 'Roll-Up Summary' and the 'Roll-Up Type' is not
+      COUNT, this field must be filled in, Only fields that aggregate number,
+      currency, date, and datetime types are supported.
+    description: 
+  summary_filters:
+    label: Filter Criteria
+    help: >-
+      Only records meeting certain criteria should be included in the
+      calculation, all records should be included in the calculation while the
+      criteria is empty.
+    description: 
+  summary_filters.$:
+    label: Filter Criteria
+    help: 
+    description: 
+  summary_filters.$.field:
+    label: Field
+    help: 
+    description: 
+  summary_filters.$.operation:
+    label: Operator
+    help: 
+    description: 
+  summary_filters.$.value:
+    label: Value
+    help: 
+    description: 
+  summary_depend_on:
+    label: Recalculate Summary Depend On
+    help: Which fields of the child table are dependent on when the summary is performed. When the values of these fields change, a recalculation of the summary field values of the primary table records is triggered.
+    description: 
+  column_name:
+    label: Database column name
+    help: Only supports relational databases.
+    description: 
+  primary:
+    label: Primary Key
+    help: 
+    description: 
+  generated:
+    label: Generated
+    help: 
+    description: 
+  sort_no:
+    label: Sort Number
+    help: 
+    description: 
+  is_name:
+    label: Is Name
+    help: 
+    description: 
+  required:
+    label: Required
+    help: 
+    description: 
+  enable_thousands:
+    label: Display thousands separators
+    help: 
+    description:
+  deleted_lookup_record_behavior:
+    label: The rule for deleting related table records
+    help: 
+    description: If the field is mandatory, then by default, deletion is not allowed and modification is prohibited.
+    options:
+      - label: When deleting related table records, also delete the value of this field.
+        value: clear
+      - label: Do not allow deletion.
+        value: retain
+  is_wide:
+    label: Is Wide
+    help: 
+    description: 
+  readonly:
+    label: Readonly
+    help: It is read-only and does not appear on the form when you create or edit records.
+    description: 
+  static:
+    label: Readonly and displayed while editing
+    help: Displays as read-only, but the field value can be set by default, autofill, or custom scripts when creating and editing records.
+    description: 
+  hidden:
+    label: Hidden
+    help: 
+    description: 
+  omit:
+    label: Omit
+    help: 
+    description: 
+  index:
+    label: Is Index Field
+    help: The Creation Is Executed Once A Day By Default And The Existing Indexes Are Not Repeatedly Created.
+    description: 
+  unique:
+    label: Unique Index
+    help: The Creation Is Executed Once A Day By Default And The Existing Indexes Are Not Repeatedly Created.
+    description: 
+  sortable:
+    label: Sortable
+    help: 
+    description: 
+  searchable:
+    label: Enable full-text search
+    help: 
+    description: 
+  filterable:
+    label: Filterable
+    help: 
+    description: 
+  show_as_qr:
+    label: Show as QR
+    help: 
+    description: 
+  visible_on:
+    label: Visible On
+    help: 
+    description: 
+  inlineHelpText:
+    label: Prompt text
+    help: 
+    description: 
+  description:
+    label: Description
+    help: 
+    description: 
+  write_requires_master_read:
+    label: Write requires master read
+    help: >-
+      Sets the minimum sharing access level required on the master record to
+      create, edit, or delete child records. This field applies only to
+      master-detail or junction object custom field types. true—Allows users
+      with “Read” access to the master record permission to create, edit, or
+      delete child records. This setting makes sharing less restrictive.
+      false—Allows users with “Read/Write” access to the master record
+      permission to create, edit, or delete child records. This setting is more
+      restrictive than true, and is the default value.
+    description: 
+  amis:
+    label: Amis Attribute
+    help: 
+    description: 
+  enable_enhanced_lookup:
+    label: Enable Enhanced Lookup
+    help: 
+    description: 
+  is_customize:
+    label: Customize
+groups:
+  external_data_source: External data source
+  advanced: Advanced
+  ui: UI
+listviews:
+  all:
+    label: All
+  customize:
+    label: Customize
+actions:
+  recomputeFormulaValues:
+    label: Recompute Formula Values
+  recomputeSummaryValues:
+    label: Batch Recompute Summary Values
+CustomLabels:
+  object_fields_field_allowedValues: 
+  object_fields_field_filters: 
+  object_fields_field_filters.$: 
+  object_fields_field_filters_$_field: 
+  object_fields_field_filters_$_operation: 
+  object_fields_field_filters_$_value: 
+  object_fields_field_summary_filters.$: 
+  object_fields_group_reference: 
+  object_fields_group_number: 
+  object_fields_group_formula: 
+  object_fields_group_summary: 
+  object_fields__error_name_invalid_format: 
+  object_fields__error_name_max_length: 

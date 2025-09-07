@@ -1,0 +1,4 @@
+name: recomputeSummaryValues
+is_enable: true
+label: Batch Recompute Summary Values
+'on': record_only

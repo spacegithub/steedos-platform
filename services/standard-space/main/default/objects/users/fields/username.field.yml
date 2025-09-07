@@ -1,0 +1,5 @@
+name: username
+type: text
+omit: true
+label: Username
+sort_no: 140

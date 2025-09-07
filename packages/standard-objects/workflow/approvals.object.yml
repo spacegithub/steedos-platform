@@ -1,6 +1,8 @@
 name: approvals
 icon: metrics
 label: Approval
+hidden: true
+enable_dataloader: false
 fields:
   from_user:
     label: From 

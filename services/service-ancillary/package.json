@@ -1,0 +1,22 @@
+{
+  "name": "@steedos/service-ancillary",
+  "version": "2.7.18-beta.41",
+  "description": "",
+  "main": "package.service.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "@steedos/utils": "2.7.18-beta.41",
+    "express": "^4.17.1",
+    "express-xml-bodyparser": "0.3.0",
+    "xml2js": "0.4.23"
+  },
+  "gitHead": "0b781a80560d115e8be3c4e39bc2c0c97cc15ce1"
+}

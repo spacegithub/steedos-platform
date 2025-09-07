@@ -51,7 +51,6 @@
       "path": "packages/ecmascript.js"
     },
     {
-      "node_modules": "npm/node_modules/meteor/babel-runtime/node_modules",
       "path": "packages/babel-runtime.js"
     },
     {
@@ -103,6 +102,9 @@
     {
       "node_modules": "npm/node_modules/meteor/email/node_modules",
       "path": "packages/email.js"
+    },
+    {
+      "path": "packages/underscore.js"
     },
     {
       "path": "packages/url.js"
@@ -168,9 +170,6 @@
       "node_modules": "npm/node_modules/meteor/ddp-client/node_modules",
       "sourceMap": "packages/ddp-client.js.map",
       "path": "packages/ddp-client.js"
-    },
-    {
-      "path": "packages/underscore.js"
     },
     {
       "sourceMap": "packages/routepolicy.js.map",
@@ -251,6 +250,7 @@
       "path": "packages/htmljs.js"
     },
     {
+      "sourceMap": "packages/blaze.js.map",
       "path": "packages/blaze.js"
     },
     {
@@ -311,7 +311,6 @@
       "path": "packages/cfs_http-methods.js"
     },
     {
-      "sourceMap": "packages/tap_i18n.js.map",
       "path": "packages/tap_i18n.js"
     },
     {
@@ -345,7 +344,6 @@
       "path": "packages/aldeed_collection2-core.js"
     },
     {
-      "sourceMap": "packages/aldeed_schema-index.js.map",
       "path": "packages/aldeed_schema-index.js"
     },
     {
@@ -361,13 +359,6 @@
       "path": "packages/steedos_autoform-bs-datetimepicker.js"
     },
     {
-      "path": "packages/momentjs_moment.js"
-    },
-    {
-      "path": "packages/steedos_bootstrap3-datetimepicker.js"
-    },
-    {
-      "sourceMap": "packages/steedos_creator-autoform-modals.js.map",
       "path": "packages/steedos_creator-autoform-modals.js"
     },
     {
@@ -420,34 +411,13 @@
       "path": "packages/steedos_autoform-tags.js"
     },
     {
-      "path": "packages/perak_markdown.js"
-    },
-    {
-      "path": "packages/q42_autoform-markdown.js"
-    },
-    {
-      "path": "packages/steedos_markdown.js"
-    },
-    {
       "path": "packages/steedos_autoform-dx-date-box.js"
     },
     {
       "path": "packages/vazco_universe-autoform-select.js"
     },
     {
-      "path": "packages/summernote_summernote.js"
-    },
-    {
-      "path": "packages/mpowaga_autoform-summernote.js"
-    },
-    {
-      "path": "packages/steedos_devexpress.js"
-    },
-    {
       "path": "packages/gwendall_simple-schema-i18n.js"
-    },
-    {
-      "path": "packages/francocatena_status.js"
     },
     {
       "path": "packages/steedos_toastr.js"
@@ -461,6 +431,9 @@
     },
     {
       "path": "packages/dburles_collection-helpers.js"
+    },
+    {
+      "path": "packages/momentjs_moment.js"
     },
     {
       "path": "packages/mrt_moment.js"
@@ -543,8 +516,13 @@
       "path": "packages/steedos_logger.js"
     },
     {
+      "node_modules": "npm/node_modules/meteor/steedos_objects/node_modules",
       "sourceMap": "packages/steedos_objects.js.map",
       "path": "packages/steedos_objects.js"
+    },
+    {
+      "sourceMap": "packages/steedos_cfs-steedos-cloud.js.map",
+      "path": "packages/steedos_cfs-steedos-cloud.js"
     },
     {
       "sourceMap": "packages/steedos_cfs-tempstore.js.map",
@@ -614,49 +592,32 @@
       "path": "packages/steedos_qcloud-smsqueue.js"
     },
     {
-      "path": "packages/meteorhacks_async.js"
-    },
-    {
-      "node_modules": "npm/node_modules/meteor/steedos_oauth2-server/node_modules",
-      "sourceMap": "packages/steedos_oauth2-server.js.map",
-      "path": "packages/steedos_oauth2-server.js"
-    },
-    {
       "path": "packages/smoral_sweetalert.js"
     },
     {
       "path": "packages/peppelg_bootstrap-3-modal.js"
     },
     {
-      "path": "packages/meteorhacks_meteorx.js"
-    },
-    {
-      "path": "packages/meteorhacks_unblock.js"
-    },
-    {
-      "path": "packages/steedos_lightning-design-system.js"
-    },
-    {
       "sourceMap": "packages/steedos_odata.js.map",
       "path": "packages/steedos_odata.js"
+    },
+    {
+      "sourceMap": "packages/steedos_object-database.js.map",
+      "path": "packages/steedos_object-database.js"
     },
     {
       "sourceMap": "packages/steedos_mailqueue.js.map",
       "path": "packages/steedos_mailqueue.js"
     },
     {
-      "path": "packages/chuangbo_cookie.js"
-    },
-    {
-      "path": "packages/steedos_sso.js"
-    },
-    {
       "sourceMap": "packages/steedos_webhookqueue.js.map",
       "path": "packages/steedos_webhookqueue.js"
     },
     {
-      "sourceMap": "packages/steedos_api-authenticate-user.js.map",
-      "path": "packages/steedos_api-authenticate-user.js"
+      "path": "packages/lamhieu_meteorx.js"
+    },
+    {
+      "path": "packages/lamhieu_unblock.js"
     },
     {
       "sourceMap": "packages/steedos_huaweipush.js.map",
@@ -676,11 +637,14 @@
       "path": "packages/steedos_autoform-location.js"
     },
     {
-      "sourceMap": "packages/steedos_autoform.js.map",
-      "path": "packages/steedos_autoform.js"
+      "path": "packages/chuangbo_cookie.js"
     },
     {
-      "path": "packages/steedos_app-base.js"
+      "path": "packages/steedos_sso.js"
+    },
+    {
+      "sourceMap": "packages/steedos_autoform.js.map",
+      "path": "packages/steedos_autoform.js"
     },
     {
       "sourceMap": "packages/steedos_creator.js.map",
@@ -689,25 +653,6 @@
     {
       "sourceMap": "packages/steedos_instance-record-queue.js.map",
       "path": "packages/steedos_instance-record-queue.js"
-    },
-    {
-      "sourceMap": "packages/steedos_app-chat.js.map",
-      "path": "packages/steedos_app-chat.js"
-    },
-    {
-      "sourceMap": "packages/steedos_application-package.js.map",
-      "path": "packages/steedos_application-package.js"
-    },
-    {
-      "sourceMap": "packages/steedos_users-import.js.map",
-      "path": "packages/steedos_users-import.js",
-      "assets": {
-        "server/ejs/export_space_users.ejs": "assets/packages/steedos_users-import/server/ejs/export_space_users.ejs"
-      }
-    },
-    {
-      "sourceMap": "packages/steedos_audit.js.map",
-      "path": "packages/steedos_audit.js"
     },
     {
       "path": "packages/steedos_formbuilder.js"
@@ -763,15 +708,13 @@
       "path": "packages/steedos_webkit-notification.js"
     },
     {
-      "path": "packages/vazco_universe-selectize.js"
+      "sourceMap": "packages/steedos_api-authenticate-user.js.map",
+      "path": "packages/steedos_api-authenticate-user.js"
     },
     {
-      "node_modules": "npm/node_modules/meteor/steedos_cms/node_modules",
-      "sourceMap": "packages/steedos_cms.js.map",
-      "path": "packages/steedos_cms.js",
-      "assets": {
-        "themes/default.html": "assets/packages/steedos_cms/themes/default.html"
-      }
+      "node_modules": "npm/node_modules/meteor/steedos_records-qhd/node_modules",
+      "sourceMap": "packages/steedos_records-qhd.js.map",
+      "path": "packages/steedos_records-qhd.js"
     },
     {
       "path": "packages/hot-code-push.js"

@@ -1,4 +1,12 @@
-import { getSteedosSchema, addConfig, getConfig, removeConfig } from '@steedos/objectql';
+/*
+ * @Author: sunhaolin@hotoa.com
+ * @Date: 2021-06-03 15:11:52
+ * @LastEditors: baozhoutao@steedos.com
+ * @LastEditTime: 2023-05-30 10:58:24
+ * @Description: 
+ */
+import { getSteedosSchema } from '@steedos/objectql';
+import { addConfig, getConfig, removeConfig} from '@steedos/metadata-registrar';
 import { isExpried } from './utils'
 const sessionCacheInMinutes = 10;
 const USERCACHENAME = 'users_cache';
@@ -18,6 +26,14 @@ export function getSessionFromCache(userId) {
 export function addSessionToCache(userId, userSession) {
     userSession._id = userId
     addConfig(USERCACHENAME, userSession);
+}
+
+/**
+ * 清除缓存
+ * @param userId 
+ */
+export function removeUserSessionFromCache(userId: string): void {
+    removeConfig(USERCACHENAME, { _id: userId })
 }
 
 async function getUser(userId) {
@@ -40,6 +56,13 @@ export async function getUserSession(userId) {
             session.utcOffset = user.utcOffset;
             session.steedos_id = user.steedos_id;
             session.locale = user.locale;
+            if(user.locale == "en-us"){
+                session.language = "en"
+            }else if(user.locale == "zh-cn"){
+                session.language = "zh-CN"
+            }else{
+                session.language = user.locale
+            }
             session.expiredAt = expiredAt;
             addSessionToCache(userId, session);
             return session;

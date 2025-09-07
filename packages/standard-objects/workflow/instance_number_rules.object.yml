@@ -1,6 +1,9 @@
 name: instance_number_rules
-icon: metrics
+icon: topic2
 label: Instance Number Rule
+hidden: true
+version: 2
+enable_dataloader: false
 fields:
   name:
     type: text
@@ -8,16 +11,13 @@ fields:
     required: true
     name: name
     searchable: true
+    filterable: true
   year:
     type: number
     label: Year
-    readonly: true
-    defaultValue: !<tag:yaml.org,2002:js/function> |-
-      function () {
-              if (Meteor.isClient) {
-                return new Date().getFullYear();
-              }
-            }
+    static: true
+    defaultValue: ${YEAR(TODAY())}
+    visible_on: "{{global.mode !='read' ? false : true}}"
     name: year
   first_number:
     type: number
@@ -34,6 +34,8 @@ fields:
     label: Appearance Formular
     required: true
     name: rules
+    searchable: true
+    filterable: true
   # company_id:
   #   required: false
   #   omit: false
@@ -48,6 +50,10 @@ list_views:
       - number
       - rules
     label: All Rules
+    searchable_fields:
+      - field: name
+      - field: rules
+      - field: company_id
 permission_set:
   user:
     allowCreate: false

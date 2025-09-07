@@ -1,12 +1,24 @@
 name: flow_roles
-icon: metrics
+icon: messaging_user
 label: Workflow Role
+hidden: true
+version: 2
+enable_dataloader: false
+enable_enhanced_lookup: true
 fields:
   name:
     type: text
     label: Name
     name: name
     searchable: true
+    filterable: true
+  api_name:
+    type: text
+    label: API Name
+    required: true
+    searchable: true
+    name: api_name
+    filterable: true
   # company_id:
   #   required: false
   #   omit: false
@@ -49,3 +61,7 @@ permission_set:
     unreadable_fields: []
     uneditable_fields: []
     unrelated_objects: []
+actions:
+  customize:
+    label: Customize
+    on: record

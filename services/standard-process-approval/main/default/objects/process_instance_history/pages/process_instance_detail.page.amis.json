@@ -1,0 +1,123 @@
+{
+    "type": "steedos-record-service",
+    "body": [
+        {
+            "type": "service",
+            "body": [
+                {
+                    "type": "steedos-record-detail-header",
+                    "label": "标题面板",
+                    "objectApiName": "${objectName}",
+                    "recordId": "${recordId}",
+                    "id": "u:229980175758"
+                },
+                {
+                    "type": "tabs",
+                    "className": "steedos-record-tabs bg-white p-4 mt-3 border-y",
+                    "tabs": [
+                        {
+                            "title": "详情",
+                            "body": [
+                                {
+                                    "id": "u:731d4077557a",
+                                    "type": "group",
+                                    "body": [
+                                        {
+                                            "objectApiName": "${target_object.o}",
+                                            "type": "steedos-object-form",
+                                            "id": "u:d1f14744310b",
+                                            "label": "对象表单",
+                                            "recordId": "${target_object.ids[0]}",
+                                            "visibleOn": "${!!target_object}",
+                                            "className": "antd-Form antd-Form--normal steedos-amis-form bg-white",
+                                            "mode": "read",
+                                            "enableInitApi": true
+                                        }
+                                    ]
+                                }
+                            ],
+                            "id": "u:78283d8a88a6",
+                            "className": "px-0"
+                        },
+                        {
+                            "title": "相关表",
+                            "body": [
+                                {
+                                    "type": "group",
+                                    "id": "u:731d4077557a",
+                                    "className": "px-0",
+                                    "body": [
+                                        {
+                                            "type": "steedos-object-related-lists",
+                                            "id": "u:f3101a683d9e",
+                                            "label": "所有相关表",
+                                            "recordId": "${target_object.ids[0]}",
+                                            "objectApiName": "${target_object.o}",
+                                            "visibleOn": "${!!target_object}"
+                                        }
+                                    ]
+                                }
+                            ],
+                            "id": "u:2828559659a3"
+                        },
+                      {
+                        "title": "当前记录",
+                        "className": "px-0 py-4",
+                        "body": [
+                          {
+                            "type": "steedos-object-form",
+                            "label": "对象表单",
+                            "objectApiName": "${objectName}",
+                            "recordId": "${recordId}",
+                            "appId": "${appId}",
+                            "id": "u:417063b0c22f"
+                          }
+                        ],
+                        "id": "u:5d4e7e3f6ecc"
+                      }
+                    ],
+                    "id": "u:e1251a3f5a0f"
+                  }
+            ],
+            "data": {
+                "_master.objectName": "${objectName}",
+                "_master.recordId": "${recordId}"
+            },
+            "onEvent": {
+                "recordLoaded": {
+                    "actions": [
+                        {
+                            "actionType": "reload",
+                            "data": {
+                                "name": "${record.name}",
+                                "_master.record": "${record}",
+                                "_master.objectName": "${objectName}",
+                                "_master.recordId": "${recordId}"
+                            }
+                        }
+                    ]
+                }
+            },
+            "id": "u:be317b257920",
+            "messages": {}
+        }
+    ],
+    "regions": [
+      "body"
+    ],
+    "data": {
+      "objectName": "process_instance_history",
+      "recordId": "sJjFfTionvxrwrdF8",
+      "context": {
+        "rootUrl": "http://127.0.0.1:5900",
+        "tenantId": "63ed8fb288feeecd0165843d",
+        "userId": "1852bcb9-a3cb-4d04-905b-1cd12e4cdb3b",
+        "authToken": "655db0535cc3e217056b8fcb0aa270b8618128df0daad0076f9b90c4041a537f4aef46ed54131dc642afeb"
+      }
+    },
+    "id": "page_process_instance_history_record_detail",
+    "name": "page_process_instance_history_record_detail",
+    "objectApiName": "${objectName}",
+    "bodyClassName": "",
+    "className": "object-detail-page"
+}

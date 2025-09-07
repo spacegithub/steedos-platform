@@ -1,6 +1,9 @@
 name: flow_positions
-icon: metrics
+icon: person_account
 label: Workflow Position
+hidden: true
+enable_dataloader: false
+version: 2
 fields:
   role:
     type: master_detail
@@ -9,14 +12,17 @@ fields:
     required: true
     name: role
     filterable: true
+    is_name: true
   users:
-    type: lookup
+    type: master_detail
     label: Users
-    reference_to: users
+    reference_to: space_users
+    reference_to_field: user
     multiple: true
     required: true
     name: users
     filterable: true
+    is_company_limited: false
   org:
     type: lookup
     label: Department

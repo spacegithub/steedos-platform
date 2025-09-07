@@ -1,0 +1,367 @@
+name: Release NPM
+
+on:
+  push:
+    tags:
+     - 'v**'
+jobs:
+  npm-release:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [14.x]
+
+    steps:
+    
+      - uses: nowsprinting/check-version-format-action@v3
+        id: version
+        with:
+          prefix: 'v'
+
+      - name: Check valid tag format
+        if: steps.version.outputs.is_valid == 'false'
+        run: exit 1
+
+      - name: Get branch names
+        id: branch-name
+        uses: tj-actions/branch-names@v5.2
+        with: 
+          strip_tag_prefix: v
+
+      - name: Get the current tag
+        if: steps.branch-name.outputs.is_tag == 'true'  # Replaces: startsWith(github.ref, 'refs/tags/')
+        run: |
+          echo "tag: ${{ steps.branch-name.outputs.tag }}"
+          echo "current_branch: ${{ steps.branch-name.outputs.current_branch }}"
+          echo "ref_branch: ${{ steps.branch-name.outputs.ref_branch }}"
+
+      - name: Check valid branch
+        if: ${{ !startsWith(steps.branch-name.outputs.tag, '2.')  }}
+        run: exit 1
+
+      # checkout branch 2.7
+      - name: Checkout branch 2.7
+        uses: actions/checkout@v2
+        if: ${{ startsWith(steps.branch-name.outputs.tag, '2.7') }} 
+        with: 
+          ref: '2.7'
+      
+      # checkout branch 2.6
+      - name: Checkout branch 2.6
+        uses: actions/checkout@v2
+        if: ${{ startsWith(steps.branch-name.outputs.tag, '2.6') }} 
+        with: 
+          ref: '2.6'
+
+      # checkout branch 2.5
+      - name: Checkout branch 2.5
+        uses: actions/checkout@v2
+        if: ${{ startsWith(steps.branch-name.outputs.tag, '2.5') }} 
+        with: 
+          ref: '2.5'
+
+      # checkout branch 2.4
+      - name: Checkout branch 2.4
+        uses: actions/checkout@v2
+        if: ${{ startsWith(steps.branch-name.outputs.tag, '2.4') }}
+        with: 
+          ref: '2.4'
+
+      # checkout branch 2.3
+      - name: Checkout branch 2.3
+        uses: actions/checkout@v2
+        if: ${{ startsWith(steps.branch-name.outputs.tag, '2.3') }} 
+        with: 
+          ref: '2.3'
+
+      # checkout branch 2.2
+      - name: Checkout branch 2.2
+        uses: actions/checkout@v2
+        if: ${{ startsWith(steps.branch-name.outputs.tag, '2.2') }} 
+        with: 
+          ref: '2.2'
+
+      # checkout branch 2.1
+      - name: Checkout branch 2.1
+        uses: actions/checkout@v2
+        if: ${{ startsWith(steps.branch-name.outputs.tag, '2.1') }} 
+        with: 
+          ref: '2.1'
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: "yarn"
+
+      - run: yarn --frozen-lockfile
+
+      - name: Bootstrap platform
+        run: |
+          yarn bootstrap
+
+      - name: Build platform
+        env:
+          CI: false
+        run: |
+          yarn build
+
+      - name: Lerna publish 2.1
+        if: ${{ startsWith(steps.branch-name.outputs.tag, '2.1') && steps.version.outputs.is_stable == 'true'}}
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          npm config set //registry.npmjs.org/:_authToken=$NODE_AUTH_TOKEN
+          yarn lerna publish ${{ steps.branch-name.outputs.tag }}  --no-git-tag-version --no-git-reset --force-publish --exact --yes --dist-tag 2.1
+          git add . 
+          git commit -m "action: release ${{ steps.branch-name.outputs.tag }}"
+          git push
+        env:
+          CI: false
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+      
+      - name: Lerna publish 2.2
+        if: ${{ startsWith(steps.branch-name.outputs.tag, '2.2') && steps.version.outputs.is_stable == 'true'}}
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          npm config set //registry.npmjs.org/:_authToken=$NODE_AUTH_TOKEN
+          yarn lerna publish ${{ steps.branch-name.outputs.tag }}  --no-git-tag-version --no-git-reset --force-publish --exact --yes --dist-tag 2.2
+          git add . 
+          git commit -m "action: release ${{ steps.branch-name.outputs.tag }}"
+          git push
+        env:
+          CI: false
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+          
+      - name: Lerna publish 2.3
+        if: ${{ startsWith(steps.branch-name.outputs.tag, '2.3') && steps.version.outputs.is_stable == 'true' }}
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          npm config set //registry.npmjs.org/:_authToken=$NODE_AUTH_TOKEN
+          yarn lerna publish ${{ steps.branch-name.outputs.tag }}  --no-git-tag-version --no-git-reset --force-publish --exact --yes --dist-tag 2.3
+          git add . 
+          git commit -m "action: release ${{ steps.branch-name.outputs.tag }}"
+          git push
+        env:
+          CI: false
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+        
+
+      - name: Lerna publish 2.4
+        if: ${{ startsWith(steps.branch-name.outputs.tag, '2.4') && steps.version.outputs.is_stable == 'true' }}
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          npm config set //registry.npmjs.org/:_authToken=$NODE_AUTH_TOKEN
+          yarn lerna publish ${{ steps.branch-name.outputs.tag }}  --no-git-tag-version --no-git-reset --force-publish --exact --yes --dist-tag 2.4
+          git add . 
+          git commit -m "action: release ${{ steps.branch-name.outputs.tag }}"
+          git push
+        env:
+          CI: false
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+            
+      - name: Lerna publish 2.5
+        if: ${{ startsWith(steps.branch-name.outputs.tag, '2.5') && steps.version.outputs.is_stable == 'true' }}
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          npm config set //registry.npmjs.org/:_authToken=$NODE_AUTH_TOKEN
+          yarn lerna publish ${{ steps.branch-name.outputs.tag }}  --no-git-tag-version --no-git-reset --force-publish --exact --yes --dist-tag 2.5
+          git add . 
+          git commit -m "action: release ${{ steps.branch-name.outputs.tag }}"
+          git push
+        env:
+          CI: false
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+
+      - name: Lerna publish 2.6
+        if: ${{ startsWith(steps.branch-name.outputs.tag, '2.6') && steps.version.outputs.is_stable == 'true' }}
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          npm config set //registry.npmjs.org/:_authToken=$NODE_AUTH_TOKEN
+          yarn lerna publish ${{ steps.branch-name.outputs.tag }}  --no-git-tag-version --no-git-reset --force-publish --exact --yes --dist-tag 2.6
+          git add . 
+          git commit -m "action: release ${{ steps.branch-name.outputs.tag }}"
+          git push
+        env:
+          CI: false
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+
+
+      - name: Lerna publish 2.7
+        if: ${{ startsWith(steps.branch-name.outputs.tag, '2.7') && steps.version.outputs.is_stable == 'true' }}
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          npm config set //registry.npmjs.org/:_authToken=$NODE_AUTH_TOKEN
+          yarn lerna publish ${{ steps.branch-name.outputs.tag }}  --no-git-tag-version --no-git-reset --force-publish --exact --yes --registry https://registry.npmjs.org
+          git add . 
+          git commit -m "action: release ${{ steps.branch-name.outputs.tag }}"
+          git push
+        env:
+          CI: false
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+            
+      - name: Lerna publish beta
+        if: ${{ steps.version.outputs.is_stable != 'true' }}
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          npm config set //registry.npmjs.org/:_authToken=$NODE_AUTH_TOKEN
+          yarn lerna publish ${{ steps.branch-name.outputs.tag }}  --no-git-tag-version --no-git-reset --force-publish --exact --yes --dist-tag beta --registry https://registry.npmjs.org
+          git pull
+          git add . 
+          git commit -m "action: release ${{ steps.branch-name.outputs.tag }}"
+          git push
+        env:
+          CI: false
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+
+      - name: Merge 2.7 -> master
+        if: ${{ startsWith(steps.branch-name.outputs.tag, '2.7') }}  # && steps.version.outputs.is_stable == 'true'}}
+        uses: devmasx/merge-branch@master
+        with:
+          type: now
+          from_branch: 2.7
+          target_branch: master
+          github_token: ${{ github.token }}
+
+     
+  docker-enterprise:
+    needs: npm-release
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [14.x]
+    steps:
+      - uses: nowsprinting/check-version-format-action@v3
+        id: version
+        with:
+          prefix: 'v'
+
+      - name: Check valid tag format
+        if: steps.version.outputs.is_valid == 'false'
+        run: exit 1
+
+      - name: Get branch names
+        id: branch-name
+        uses: tj-actions/branch-names@v5.2
+        with: 
+          strip_tag_prefix: v
+
+      - name: Get the current tag
+        if: steps.branch-name.outputs.is_tag == 'true'  # Replaces: startsWith(github.ref, 'refs/tags/')
+        run: |
+          echo "tag: ${{ steps.branch-name.outputs.tag }}"
+          echo "current_branch: ${{ steps.branch-name.outputs.current_branch }}"
+          echo "ref_branch: ${{ steps.branch-name.outputs.ref_branch }}"
+
+      - name: Check valid branch
+        if: ${{ !startsWith(steps.branch-name.outputs.tag, '2.')  }}
+        run: exit 1
+
+      # checkout branch 2.7
+      - name: Checkout branch 2.7
+        uses: actions/checkout@v2
+        if: ${{ startsWith(steps.branch-name.outputs.tag, '2.7') }} 
+        with: 
+          ref: '2.7'
+
+      # checkout branch 2.6
+      - name: Checkout branch 2.6
+        uses: actions/checkout@v2
+        if: ${{ startsWith(steps.branch-name.outputs.tag, '2.6') }} 
+        with: 
+          ref: '2.6'
+
+      - name: Set Current Version
+        run: |
+          STEEDOS_VERSION=$(node -p 'require("./lerna.json").version')
+          echo "STEEDOS_VERSION=${STEEDOS_VERSION}" >> $GITHUB_ENV
+          echo "STEEDOS_VERSION=${STEEDOS_VERSION}"
+        
+      - name: Generate info.json
+        run: |
+          if [[ -f deploy/enterprise/scripts/generate_info_json.sh ]]; then
+            deploy/enterprise/scripts/generate_info_json.sh
+          fi
+
+      - uses: docker/setup-qemu-action@v1
+      - uses: docker/setup-buildx-action@v1
+        with:
+          driver-opts: network=host
+          
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: |
+            steedos/steedos-community
+            registry.cn-shanghai.aliyuncs.com/steedos/steedos-community
+            252208178451.dkr.ecr.cn-northwest-1.amazonaws.com.cn/dockerhub/steedos/steedos-community
+            steedos/steedos-enterprise
+            registry.cn-shanghai.aliyuncs.com/steedos/steedos-enterprise
+            252208178451.dkr.ecr.cn-northwest-1.amazonaws.com.cn/dockerhub/steedos/steedos-enterprise
+          tags: |
+            type=semver,pattern={{version}},value=${{ env.STEEDOS_VERSION }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ env.STEEDOS_VERSION }}
+            type=semver,pattern={{major}},value=${{ env.STEEDOS_VERSION }}
+
+      - name: Login to Aliyun Docker
+        uses: docker/login-action@v2
+        with:
+          registry: registry.cn-shanghai.aliyuncs.com
+          username: ${{ secrets.ALIYUN_DOCKER_USERNAME }}
+          password: ${{ secrets.ALIYUN_DOCKER_PASSWORD }}
+
+      - uses: docker/login-action@v1
+        name: Login Docker Hub
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_NINGXIA }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_NINGXIA }}
+          aws-region: cn-northwest-1
+
+      -
+        name: Login to ECR
+        uses: docker/login-action@v2
+        with:
+          registry: 252208178451.dkr.ecr.cn-northwest-1.amazonaws.com.cn
+
+      - name: Replace Version ~2.7 to Tag
+        uses: jacobtomlinson/gha-find-replace@v2
+        with:
+          include: deploy/enterprise/app/platform/package.json
+          find: "~2.7"
+          replace: ${{env.STEEDOS_VERSION}}
+          regex: false
+
+      - name: Build and push docker
+        uses: docker/build-push-action@v6
+        if: ${{ steps.version.outputs.is_stable != 'true' }}
+        with:
+          context: ./deploy/enterprise
+          platforms: linux/amd64
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      # 正式版才发布 arm64
+      - name: Build and push docker
+        uses: docker/build-push-action@v6
+        if: ${{ steps.version.outputs.is_stable == 'true' }}
+        with:
+          context: ./deploy/enterprise
+          platforms: linux/amd64,linux/arm64
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}

@@ -1,0 +1,23 @@
+{
+  "name": "@steedos/cachers",
+  "private": false,
+  "version": "2.7.18-beta.41",
+  "description": "",
+  "main": "lib/index.js",
+  "scripts": {
+    "build": "tsc"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "lodash": "^4.17.21",
+    "lru-cache": "^7.10.1"
+  },
+  "devDependencies": {
+    "typescript": "4.6.3"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "gitHead": "0b781a80560d115e8be3c4e39bc2c0c97cc15ce1"
+}

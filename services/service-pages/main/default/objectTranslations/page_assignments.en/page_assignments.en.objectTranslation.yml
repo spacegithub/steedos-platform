@@ -1,0 +1,48 @@
+name: page_assignments
+label: Page Assignments
+description: 
+fields:
+  app:
+    label: App
+    help: 
+    description: 
+  desktop:
+    label: Desktop
+    help: 
+    description: 
+  is_system:
+    label: System
+    help: 
+    description: 
+  mobile:
+    label: Mobile
+    help: 
+    description: 
+  page:
+    label: Page
+    help: 
+    description: 
+  profile:
+    label: Profile
+    help: 
+    description: 
+  record_type:
+    label: Record Type
+    help: 
+    description: 
+  type:
+    label: Authorization Type
+    help: 
+    options:
+      - label: Organization Default Settings
+        value: orgDefault
+      - label: Application Default Settings
+        value: appDefault
+      - label: Applications and Profiles
+        value: appRecordProfile
+    description: 
+listviews:
+  all:
+    label: All
+  recent:
+    label: Recently Viewed

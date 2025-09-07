@@ -3,6 +3,7 @@ import { SteedosObjectType } from '.';
 import _ = require('underscore')
 import { SteedosFieldDBType } from '../driver';
 import { SteedosDataSourceType } from './datasource';
+import { SteedosQueryFilters } from './query';
 
 //TODO 整理字段类型
 const FIELDTYPES = [
@@ -10,15 +11,19 @@ const FIELDTYPES = [
     "textarea",
     "html",
     "select",
+    "color",
     "boolean",
+    "toggle",
     "date",
     "datetime",
+    "time",
     "number",
     "currency",
     "password",
     "lookup",  // "id": 一对一, ["id0","id1"]: 一对多， 需要新增关系表（p, m）, {o:'object_name', ids: ['', '']}：新增关系表(p, o, m)
     "master_detail",
     "grid", // [{},{}] ： 一对多
+    "table", // [{},{}] ： 一对多
     "url",
     "email",
     "avatar", //TODO
@@ -39,14 +44,18 @@ const FIELDTYPES = [
     "code",
     "Object",
     "autonumber",
-    "markdown"
+    "markdown",
+    "formula",
+    "summary",
+    "percent"
 ]
 
 abstract class SteedosFieldProperties{
+    _id?: string
     object_name?: string
     name?: string
     column_name?: string
-    type?: string
+    abstract type?: string
     primary?: boolean
     generated?: true
     label?: string
@@ -67,6 +76,7 @@ abstract class SteedosFieldProperties{
     precision?: number
     scale?: number
     reference_to?: string | string[] | Function
+    reference_to_field?: string
     rows?: number
     options?: string | []
     description?: string
@@ -81,7 +91,15 @@ abstract class SteedosFieldProperties{
     reference_limit?: number
     is_company_limited?: boolean
     system?: string;
-    fieldDBType?: SteedosFieldDBType | string
+    abstract fieldDBType: SteedosFieldDBType | string
+    formula?: string
+    data_type?: string
+    formula_blank_value?: string
+    summary_object?: string
+    summary_type?: string
+    summary_field?: string
+    summary_filters?: SteedosQueryFilters
+    filters?: SteedosQueryFilters
 }
 
 export interface SteedosFieldTypeConfig extends SteedosFieldProperties{
@@ -119,6 +137,10 @@ export class SteedosFieldType extends SteedosFieldProperties implements Dictiona
 
         this.name = name
 
+        if(this.type === "formula" && !this.data_type){
+            throw new Error(`${this._object.name}.${this.name} invalid field type formula, miss data_type property`)
+        }
+
         this.setDBType()
 
         if(this.generated){
@@ -126,6 +148,50 @@ export class SteedosFieldType extends SteedosFieldProperties implements Dictiona
             this.properties.push('omit')
         }
     }
+
+    getIndexInfo = ()=>{
+        let indexName = this.getIndexName();
+        const defaultIndexFieldTypes = ['lookup', 'master_detail', 'autonumber', 'location']
+        if(this.index || this.unique || defaultIndexFieldTypes.includes(this.type)){
+            let index = {}; 
+            let indexValue: any =  null;
+            let sparse = false;
+            let partialFilterExpression: object;
+            if (this.index) {
+                indexValue = this.index;
+                if (indexValue === true){
+                    indexValue = 1;
+                }
+            } else {
+                indexValue = 1;
+            }
+            var idxFieldName = this.name.replace(/\.\$\./g, ".");
+            if ('location' === this.type) {
+                indexValue = '2dsphere';
+                idxFieldName = `${idxFieldName}.wgs84`
+                indexName = `${indexName}_wgs84`
+            }
+            index[idxFieldName] = indexValue;
+            let unique = !!this.unique && (indexValue === 1 || indexValue === -1);
+            if (unique && 'space' != idxFieldName) {
+                index['space'] = 1; // 工作区唯一
+                partialFilterExpression = { [idxFieldName]: { $exists: true } }; // 创建部分索引
+            }
+            return {
+                key: index, 
+                name: indexName,
+                unique: unique,
+                sparse: sparse,
+                background: true, //兼容4.2之前的数据库版本
+                partialFilterExpression
+            }
+        }
+    }
+
+    getIndexName = ()=>{
+        return 'c2_' + this.name;
+    }
+
 
     private transformReferenceTo(reference_to: string, datasource: SteedosDataSourceType): string{
         if(_.isString(reference_to)){
@@ -141,7 +207,7 @@ export class SteedosFieldType extends SteedosFieldProperties implements Dictiona
     transformReferenceOfObject(){
         if(this.reference_to){
             let datasource = this._object.datasource
-            if(datasource.name != 'default'){
+            if(datasource.name != 'meteor'){
                 if(_.isString(this.reference_to)){
                     this.reference_to = this.transformReferenceTo(this.reference_to, datasource)
                 }else if(_.isArray(this.reference_to)){
@@ -165,161 +231,143 @@ export class SteedosFieldType extends SteedosFieldProperties implements Dictiona
         return config
     }
 
+    private getDBType(type: any): SteedosFieldDBType{
+        switch (type) {
+            case 'text':
+               return SteedosFieldDBType.varchar
+           case 'textarea':
+               return SteedosFieldDBType.text
+           case 'html':
+               return SteedosFieldDBType.text
+           case 'select':
+               if(this.multiple){
+                   return SteedosFieldDBType.varchar
+               }else{
+                   return SteedosFieldDBType.varchar
+               }
+           case 'color':
+               return SteedosFieldDBType.text
+           case 'boolean':
+               return SteedosFieldDBType.boolean
+           case 'toggle':
+               return SteedosFieldDBType.boolean
+           case 'date':
+               return SteedosFieldDBType.date
+           case 'datetime':
+               return SteedosFieldDBType.dateTime
+           case 'time':
+               return SteedosFieldDBType.dateTime
+           case 'number':
+               return SteedosFieldDBType.number
+           case 'currency':
+               if(!this.scale && this.scale != 0){
+                   this.scale = 2
+               }
+               return SteedosFieldDBType.number
+           case 'password':
+               return SteedosFieldDBType.varchar
+           case 'lookup':
+               // let reference_to = this.reference_to
+               // if(_.isFunction(this.reference_to)){
+               //     reference_to = this.reference_to()
+               // }
+
+               // if(_.isArray(reference_to)){
+               //     this._columnType = SteedosColumnType.manyToMany
+               // }else{
+               //     if(this.multiple){
+               //         this._columnType = SteedosColumnType.oneToMany
+               //     }else{
+               //         this._columnType = SteedosColumnType.oneToOne
+               //     }
+               // }
+               return SteedosFieldDBType.varchar
+           case 'master_detail':
+               // let reference_to2 = this.reference_to
+               // if(_.isFunction(this.reference_to)){
+               //     reference_to2 = this.reference_to()
+               // }
+
+               // if(_.isArray(reference_to2)){
+               //     this._columnType = SteedosColumnType.manyToMany
+               // }else{
+               //     if(this.multiple){
+               //         this._columnType = SteedosColumnType.manyToOne //TODO
+               //     }else{
+               //         this._columnType = SteedosColumnType.oneToOne
+               //     }
+               // }
+               return SteedosFieldDBType.varchar
+           case 'grid':
+               return SteedosFieldDBType.array
+           case 'table':
+               return SteedosFieldDBType.array
+           case 'url':
+               return SteedosFieldDBType.varchar
+           case 'email':
+               return SteedosFieldDBType.varchar
+           case 'avatar':
+               return SteedosFieldDBType.varchar
+           case 'location':
+               return SteedosFieldDBType.json
+           case 'image':
+               return SteedosFieldDBType.varchar
+           case 'object':
+               return SteedosFieldDBType.json
+               case 'url':
+               return SteedosFieldDBType.varchar
+           case '[object]':
+               return SteedosFieldDBType.array
+           case '[Object]':
+               return SteedosFieldDBType.array
+           case '[grid]':
+               return SteedosFieldDBType.array
+           case '[text]':
+               return SteedosFieldDBType.array
+           case 'selectCity':
+               return SteedosFieldDBType.json
+           case 'audio':
+               return SteedosFieldDBType.varchar
+           case 'filesize':
+               return SteedosFieldDBType.number
+           case 'file':
+               return SteedosFieldDBType.varchar
+           case 'string':
+               return SteedosFieldDBType.varchar
+           case 'code':
+               return SteedosFieldDBType.varchar
+           case 'function Object() { [native code] }':
+               return SteedosFieldDBType.json
+           case Object:
+               return SteedosFieldDBType.json
+           case 'function String() { [native code] }':
+               return SteedosFieldDBType.varchar
+           case String:
+               return SteedosFieldDBType.varchar
+           case 'Object':
+               return SteedosFieldDBType.json
+           case 'autonumber':
+               return SteedosFieldDBType.varchar
+           case 'markdown':
+               return SteedosFieldDBType.varchar
+           case 'formula':
+               return this.getDBType(this.data_type);
+           case 'summary':
+                //汇总不需要check类型
+                return SteedosFieldDBType.varchar;
+           case 'percent':
+                //百分比字段按数值类型处理
+                return this.getDBType("number");
+           default:
+               throw new Error(`${this._object.name}.${this.name} invalid field type ${type}`)
+        }
+    }
+
     private setDBType(){
         if(this.fieldDBType){
             return;
         }
-         switch (this.type) {
-             case 'text':
-                this._fieldDBType = SteedosFieldDBType.varchar
-                break;
-            case 'textarea':
-                this._fieldDBType = SteedosFieldDBType.text
-                break;
-            case 'html':
-                this._fieldDBType = SteedosFieldDBType.text
-                break;
-            case 'select':
-                if(this.multiple){
-                    this._fieldDBType = SteedosFieldDBType.array
-                }else{
-                    this._fieldDBType = SteedosFieldDBType.varchar
-                }
-                break;
-            case 'boolean':
-                this._fieldDBType = SteedosFieldDBType.boolean
-                break;
-            case 'date':
-                this._fieldDBType = SteedosFieldDBType.date
-                break;
-            case 'datetime':
-                this._fieldDBType = SteedosFieldDBType.dateTime
-                break;
-            case 'number':
-                this._fieldDBType = SteedosFieldDBType.number
-                break;
-            case 'currency':
-                if(!this.scale && this.scale != 0){
-                    this.scale = 2
-                }
-                this._fieldDBType = SteedosFieldDBType.number
-                break;
-            case 'password':
-                this._fieldDBType = SteedosFieldDBType.varchar
-                break;
-            case 'lookup':
-                // let reference_to = this.reference_to
-                // if(_.isFunction(this.reference_to)){
-                //     reference_to = this.reference_to()
-                // }
-
-                // if(_.isArray(reference_to)){
-                //     this._columnType = SteedosColumnType.manyToMany
-                // }else{
-                //     if(this.multiple){
-                //         this._columnType = SteedosColumnType.oneToMany
-                //     }else{
-                //         this._columnType = SteedosColumnType.oneToOne
-                //     }
-                // }
-                this._fieldDBType = SteedosFieldDBType.varchar
-                break;
-            case 'master_detail':
-                // let reference_to2 = this.reference_to
-                // if(_.isFunction(this.reference_to)){
-                //     reference_to2 = this.reference_to()
-                // }
-
-                // if(_.isArray(reference_to2)){
-                //     this._columnType = SteedosColumnType.manyToMany
-                // }else{
-                //     if(this.multiple){
-                //         this._columnType = SteedosColumnType.manyToOne //TODO
-                //     }else{
-                //         this._columnType = SteedosColumnType.oneToOne
-                //     }
-                // }
-                this._fieldDBType = SteedosFieldDBType.varchar
-                break;
-            case 'grid':
-                this._fieldDBType = SteedosFieldDBType.array
-                break;
-            case 'url':
-                this._fieldDBType = SteedosFieldDBType.varchar
-                break;
-            case 'email':
-                this._fieldDBType = SteedosFieldDBType.varchar
-                break;
-            case 'avatar':
-                this._fieldDBType = SteedosFieldDBType.varchar
-                break;
-            case 'location':
-                this._fieldDBType = SteedosFieldDBType.json
-                break;
-            case 'image':
-                this._fieldDBType = SteedosFieldDBType.varchar
-                break;
-            case 'object':
-                this._fieldDBType = SteedosFieldDBType.json
-                break;
-                case 'url':
-                this._fieldDBType = SteedosFieldDBType.varchar
-                break;
-            case '[object]':
-                this._fieldDBType = SteedosFieldDBType.array
-                break;
-            case '[Object]':
-                this._fieldDBType = SteedosFieldDBType.array
-                break;
-            case '[grid]':
-                this._fieldDBType = SteedosFieldDBType.array
-                break;
-            case '[text]':
-                this._fieldDBType = SteedosFieldDBType.array
-                break;
-            case 'selectCity':
-                this._fieldDBType = SteedosFieldDBType.json
-                break;
-            case 'audio':
-                this._fieldDBType = SteedosFieldDBType.varchar
-                break;
-            case 'filesize':
-                this._fieldDBType = SteedosFieldDBType.number
-                break;
-            case 'file':
-                this._fieldDBType = SteedosFieldDBType.varchar
-                break;
-            case 'string':
-                this._fieldDBType = SteedosFieldDBType.varchar
-                break;
-            case 'code':
-                this._fieldDBType = SteedosFieldDBType.varchar
-                break;
-            case 'function Object() { [native code] }':
-                this._fieldDBType = SteedosFieldDBType.json
-                break;
-            case Object:
-                this._fieldDBType = SteedosFieldDBType.json
-                break;
-            case 'function String() { [native code] }':
-                this._fieldDBType = SteedosFieldDBType.varchar
-                break;
-            case String:
-                this._fieldDBType = SteedosFieldDBType.varchar
-                break;
-            case 'Object':
-                this._fieldDBType = SteedosFieldDBType.json
-                break;
-            case 'autonumber':
-                this._fieldDBType = SteedosFieldDBType.varchar
-                break;
-            case 'markdown':
-                this._fieldDBType = SteedosFieldDBType.varchar
-                break;
-            default:
-                throw new Error(`${this._object.name}.${this.name} invalid field type ${this.type}`)
-                break;
-         }
+        this._fieldDBType = this.getDBType(this.type);
     }
 
     public get object(): SteedosObjectType {
